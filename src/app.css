@@ -1,0 +1,155 @@
+@import "tailwindcss";
+@import '@fontsource-variable/inter';
+
+:root, :root.citybikes {
+  --font-family-base: 'Helvetica Neue', 'Inter Variable', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --background: gold;
+  --text-main: #000;
+  --background-alt: var(--text-main);
+  --text-alt: var(--background);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+
+  }
+}
+
+:root.yellow {
+  --background: gold;
+  --text-main: black;
+}
+
+:root.dark {
+  --background: black;
+  --text-main: white;
+}
+
+:root.light {
+  --background: rgb(250, 252, 228);
+  --text-main: rgb(30, 18, 48);
+}
+
+html {
+  scrollbar-color: hsla(0,0%,100%,.3) transparent;
+  scrollbar-width: auto;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family-base);
+  color: var(--text-main);
+  background: var(--background);
+  overscroll-behavior-y: none;
+}
+
+div#root {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+div.interface-layer {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  touch-action: manipulation;
+}
+
+div.interface-layer button {
+  pointer-events: all;
+}
+
+div#typo {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-weight: 900;
+  color: #444;
+  opacity: 0.5;
+  font-size: 12px;
+}
+
+header {
+  padding: 20px;
+}
+
+div#sidebar {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 200px;
+  height: 100%;
+  background: var(--background);
+  border-radius: 4px;
+  display: none;
+}
+
+div.attribution {
+  background: #FFF;
+  font-size: 10px;
+  line-height: 13px;
+  padding: 0px 5px;
+  color: rgb(31, 31, 31);
+  pointer-events: all;
+  text-align: center;
+}
+
+div.attribution a {
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+div.attribution a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+div.attribution a:after {
+  content: "↗";
+  font-size: 0.8em;
+}
+
+div.infobox {
+}
+
+div.infobox {
+  background-color: var(--background);
+  color: var(--text-main);
+  text-align: center;
+  border-top: solid 1px var(--text-main);
+  pointer-events: all;
+  cursor: pointer;
+}
+
+div.infobox h1 {
+  font-size: 2em;
+  text-transform: capitalize;
+}
+
+div.infobox span {
+  font-size: 1.5em;
+}
+
+div#bottom {
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  width: 100%;
+}
+
+div#bottom button.locator {
+  pointer-events: all;
+}

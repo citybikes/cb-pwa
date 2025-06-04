@@ -1,0 +1,15 @@
+{
+  "short_name": "CityBikes",
+  "name": "CityBikes",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "gold",
+  "background_color": "#000"
+}

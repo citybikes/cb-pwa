@@ -1,0 +1,29 @@
+{
+  "name": "cb-pwa",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "prettier": "^3.5.3",
+    "prettier-plugin-svelte": "^3.4.0",
+    "svelte": "^5.28.1",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.5",
+    "@protomaps/basemaps": "^5.4.0",
+    "@tailwindcss/vite": "^4.1.8",
+    "@turf/turf": "^7.2.0",
+    "canvas-confetti": "^1.9.3",
+    "maplibre-gl": "^5.5.0",
+    "pmtiles": "^4.3.0",
+    "tailwindcss": "^4.1.8"
+  }
+}
