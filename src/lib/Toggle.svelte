@@ -56,7 +56,15 @@
     }
 
     .logo.loading {
-        background-color: red;
+        transform: scale(1) rotate(0deg);
+        transition: .1s transform cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        animation: hueShift 2s linear infinite;
+    }
+
+    @keyframes hueShift {
+      0%   { filter: hue-rotate(0deg); }
+      50%  { filter: hue-rotate(180deg); }
+      100% { filter: hue-rotate(360deg); }
     }
 </style>
 
