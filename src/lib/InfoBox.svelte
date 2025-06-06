@@ -26,7 +26,9 @@
     </span>
     |
     <span class="slots">{$selectedStation.empty_slots} slots</span>
+    {#if $distanceStr}
     |
     <span class="distance">{$distanceStr}</span>
+    {/if}
   </div>
 {/if}

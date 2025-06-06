@@ -1,7 +1,7 @@
 <script>
-import { get } from 'svelte/store';
-import { onMount } from 'svelte';
-import { tick } from 'svelte';
+import { get } from 'svelte/store'
+import { onMount, onDestroy } from 'svelte'
+import { tick } from 'svelte'
 
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -13,15 +13,21 @@ maplibregl.addProtocol("pmtiles",protocol.tile)
 import * as turf from '@turf/turf'
 
 import { Canvas, CoarsePointer, POV } from './canvas.js'
+import { Locator } from './locator.js'
 import { getStdColor } from './utils.js'
 
-import { selectedStation, loading } from './store.js'
+import { selectedStation, loading, locationState } from './store.js'
 import { center, zoom } from './store.js'
 
 const update_info = (element) => {
-  const loc = [pov.lng, pov.lat]
   const sts = stmap[element.properties.id]
-  const distance = turf.distance(loc, element.geometry.coordinates)
+
+  let distance
+
+  // XXX
+  if (pov) {
+    distance = turf.distance([pov.lng, pov.lat], element.geometry.coordinates)
+  }
 
   selectedStation.set({
     ...sts,
@@ -55,6 +61,8 @@ let bg = getBgColor()
 
 const data = turf.featureCollection([])
 
+const locator = new Locator({state: locationState})
+
 const sources = {
   stations_lite: {
     type: 'vector',
@@ -81,7 +89,7 @@ const layers = {
     paint: {
       'circle-radius': [
           'let', 'selected',
-              ['case', ['boolean', ['feature-state', 'selected'], false], 2, 1],
+              ['case', ['boolean', ['feature-state', 'selected'], false], 1.2, 1],
               [
                 // XXX Maybe tune these
                 'interpolate', ['linear'], ['zoom'],
@@ -330,7 +338,6 @@ const loadVisibleNets = () => {
   })
 }
 
-
 onMount(() => {
 
   const canvas = document.getElementById("map-overlay")
@@ -356,15 +363,9 @@ onMount(() => {
     zoom: get(zoom) ?? default_zoom,
   })
 
-  pov = new POV(map, [loc[1], loc[0]], bg, fg)
-  pov_pointer = new CoarsePointer(map, [loc[1], loc[0]], bg, fg)
   // XXX go figure
   selected_pointer = new CoarsePointer(map, null, null, [0,0,0], false, true)
-
-  cwrapper.entities.push(pov)
-  cwrapper.add(pov_pointer)
   cwrapper.add(selected_pointer)
-
 
   map.on('load', async () => {
     map.addSource('stations-lite', sources.stations_lite)
@@ -393,6 +394,10 @@ onMount(() => {
       loadVisibleNets()
     })
 
+    map.on('dragstart', (ev) => {
+      locator.unlock()
+    })
+
     map.on('moveend', (ev) => {
       center.set(map.getCenter())
       zoom.set(map.getZoom())
@@ -405,6 +410,7 @@ onMount(() => {
 
 
     map.on('click', 'stations', (ev) => {
+      locator.unlock()
       const element = ev.features[0]
       map.removeFeatureState({source: 'stations'})
       map.setFeatureState({source: 'stations', id: element.id}, {selected: true})
@@ -444,6 +450,7 @@ onMount(() => {
 
   // XXX Again, don't do this
   document.querySelector('#map').addEventListener('click', (ev) => {
+    locator.unlock()
     const {x, y} = {x: ev.layerX, y: ev.layerY}
     cwrapper.entities.forEach((p) => {
       if (x > p.x - p.l/2 &&
@@ -456,9 +463,17 @@ onMount(() => {
   })
 })
 
-document.addEventListener('loc-update', (ev) => {
+
+onDestroy(() => {
+  locator.kill()
+})
+
+
+window.addEventListener('loc-update', (ev) => {
   // XXX Make this proper
   const loc = ev.detail.position
+  const lat = loc.coords.latitude
+  const lng = loc.coords.longitude
 
   // mapbox bull :)
   // const center = new maplibregl.LngLat(loc.coords.longitude, loc.coords.latitude)
@@ -471,19 +486,33 @@ document.addEventListener('loc-update', (ev) => {
   //     geolocateSource: true // tag this camera change so it won't cause the control to change to background state
   // });
 
-  pov.lat = loc.coords.latitude
-  pov.lng = loc.coords.longitude
+  console.log("Got position", lat, lng, ev.detail.state, ev.detail.position)
 
-  pov_pointer.lat = loc.coords.latitude
-  pov_pointer.lng = loc.coords.longitude
+  if (! pov ) {
+    pov = new POV(map, [lat, lng], bg, fg)
+    cwrapper.add(pov)
+  } else {
+    pov.lat = lat
+    pov.lng = lng
+  }
+
+  if (! pov_pointer) {
+    pov_pointer = new CoarsePointer(map, [lat, lng], bg, fg)
+    cwrapper.add(pov_pointer)
+  } else {
+    pov_pointer.lat = lat
+    pov_pointer.lng = lng
+  }
 
   update()
   paint()
 
-  // XXX Only do this when user is "locked in" (dirty flag on map)
-  // const zoom = Math.max(map.getZoom(), 15)
-  // map.setCenter([pointers[0].lng, pointers[0].lat])
-  // map.setZoom(zoom)
+  if (ev.detail.state == "LOCKING") {
+    // XXX Only do this when user is "locked in" (dirty flag on map)
+    const zoom = Math.max(map.getZoom(), 15)
+    map.easeTo({center: [lng, lat], zoom})
+  }
+
   if (selected !== undefined)
     update_info(selected)
 })
@@ -509,6 +538,31 @@ window.addEventListener('infobox-click', (ev) => {
   const center = [ev.detail.longitude, ev.detail.latitude]
   const zoom = Math.max(map.getZoom(), 15)
   map.easeTo({ center, zoom })
+  locator.unlock()
+})
+
+window.addEventListener('loc-click', (ev) => {
+  const state = get(locator.state)
+  console.log("State is", state)
+  switch(state) {
+    case "OFF":
+    case "ERROR":
+      locator.lock()
+      break
+    case "WATCHING":
+      break
+    case "LOCKING":
+    case "TRACKING":
+      locator.lock()
+      if (locator.position) {
+        const zoom = Math.max(map.getZoom(), 15)
+        const { latitude, longitude } = locator.position.coords
+        map.easeTo({center: [longitude, latitude], zoom })
+      }
+      break
+    default:
+      throw new Error(`unexpected locator state ${state}`)
+  }
 })
 
 </script>

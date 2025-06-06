@@ -1,6 +1,7 @@
 <script>
 import InfoBox from "./lib/InfoBox.svelte"
 import Toggle from "./lib/Toggle.svelte"
+import Locator from "./lib/Locator.svelte"
 import Map from "./lib/Map.svelte"
 </script>
 
@@ -17,6 +18,7 @@ import Map from "./lib/Map.svelte"
       </div>
       <div id="bottom">
         <div class="flex flex-row justify-end px-4 py-8">
+          <Locator />
         </div>
         <div class="flex flex-row justify-end">
           <div class="attribution">

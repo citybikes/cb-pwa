@@ -28,3 +28,5 @@ zoom.subscribe( async (z) => {
 center.subscribe( async (c) => {
   localStorage.setItem('last_center', JSON.stringify(c))
 })
+
+export const locationState = writable("OFF")
