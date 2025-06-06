@@ -16,8 +16,8 @@
 <style>
     .logo {
         border-radius: 4px;
-        width: 35px;
-        height: 35px;
+        width: 45px;
+        height: 45px;
         cursor: pointer;
         background-color: var(--background-alt);
         color: var(--text-alt);
