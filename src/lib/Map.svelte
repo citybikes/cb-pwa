@@ -168,6 +168,29 @@ const layers = {
       'line-dasharray': [2, 2],
     }
   },
+  stations_labels: {
+    id: 'stations-labels',
+    type: 'symbol',
+    source: 'stations',
+    minzoom: 16,
+    layout: {
+      // WTF
+      // https://docs.mapbox.com/style-spec/reference/layers/#symbol
+      // https://docs.mapbox.com/style-spec/reference/expressions/#types-format
+      "text-field": '{nname}\n{bikes} bikes',
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 12,
+      "symbol-placement": "point",
+      "text-variable-anchor": ["top"],
+      "text-offset": [0, 1.5],
+    },
+    paint: {
+      "text-color": "#000",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 2,
+    }
+  },
+
   hull_labels: {
     id: 'hull-labels',
     type: 'symbol',
@@ -317,6 +340,9 @@ const loadVisibleNets = () => {
         // generate smallest feature to decr. mapbox memory usage
         const _st = {
           id: st.id,
+          name: st.name,
+          nname: d.network.name,
+          bikes: st.free_bikes,
           // precalculate color based on status (easy filter)
           // If we need to update data, then this should not be
           // precalculated but done using expressions
@@ -380,6 +406,7 @@ onMount(() => {
     map.addLayer(layers.hulls_net)
     map.addLayer(layers.hull_labels)
     map.addLayer(layers.stations)
+    map.addLayer(layers.stations_labels)
 
     map.on('resize', (ev) => {
       resize()
