@@ -270,7 +270,6 @@ const layers = {
 
 const paint = () => {
   map.triggerRepaint()
-  // requestAnimationFrame(animate)
   cwrapper.paint()
 }
 
@@ -285,6 +284,12 @@ const resize = () => {
   cwrapper.h = h
 
   cwrapper.resize()
+}
+
+const animate = () => {
+  update()
+  paint()
+  requestAnimationFrame(animate)
 }
 
 const update = () => {
@@ -376,8 +381,6 @@ onMount(() => {
     // about it.
     await tick()
     resize()
-    update()
-    paint()
   })
 
   map = new maplibregl.Map({
@@ -410,14 +413,10 @@ onMount(() => {
 
     map.on('resize', (ev) => {
       resize()
-      update()
-      paint()
       loadVisibleNets()
     })
 
     map.on('move', (ev) => {
-      update()
-      paint()
       loadVisibleNets()
     })
 
@@ -465,14 +464,13 @@ onMount(() => {
 
     // XXX!!!! Look into slots
 
-    update()
-    paint()
     map.on('data', (ev) => {
       if (ev.sourceId == 'stations-lite' && ev.isSourceLoaded) {
         // XXX: move to a proper load event this is a hack
         loadVisibleNets()
       }
     })
+    animate()
   })
 
   // XXX Again, don't do this
@@ -592,6 +590,14 @@ window.addEventListener('loc-click', (ev) => {
   }
 })
 
+// XXX deprecated, but nothing similar exists /shrug
+window.addEventListener("deviceorientation", event => {
+  // deg to rad
+  // convert also to canvas reference
+  // alpha is degrees to north
+  if (pov)
+    pov.angle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
+})
 </script>
 
 <style>

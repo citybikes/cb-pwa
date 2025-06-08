@@ -4,6 +4,8 @@
  * paints stored entities
  */
 
+// XXX Optimize update / draw since this is now called on requestAnimationFrame
+
 function Canvas(canvas, ctx, w, h) {
   this.canvas = canvas
   this.ctx = ctx
@@ -158,8 +160,11 @@ CoarsePointer.prototype.click = function (ev) {
 function POV(map, latlng, bg, fg) {
   this.map = map
 
-  this.angle = Math.PI * 2 * 0.5
+  // angle relative to canvas, 0 north, clockwise
+  this.angle = null
+  // view cone
   this.aperture = Math.PI * 2 * 0.3
+
   this.lat = latlng[0]
   this.lng = latlng[1]
 
@@ -185,35 +190,39 @@ POV.prototype.resize = function () {}
 
 POV.prototype.draw = function (ctx) {
 
-  ctx.save()
-
-  ctx.translate(this.x, this.y)
-  ctx.rotate(this.angle)
-
-  ctx.beginPath()
-  ctx.moveTo(0, 0)
-  ctx.lineTo(
-    this.pov_size * Math.cos(0),
-    this.pov_size * Math.sin(0)
-  )
-  ctx.arc(0, 0, this.pov_size, 0, this.aperture)
-  ctx.lineTo(0, 0)
-
   const bg = this.bg
   const fg = this.fg
 
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.pov_size)
-  gradient.addColorStop(0, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0.8)`)
-  gradient.addColorStop(1, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0)`)
+  if (this.angle != null) {
+    // POV Cone
+    ctx.save()
 
-  // gradient.addColorStop(0, "rgba(0, 150, 255, 0.8)")
-  // gradient.addColorStop(1, "rgba(0, 150, 255, 0)")
+    ctx.translate(this.x, this.y)
+    ctx.rotate(this.angle - Math.PI / 2 - this.aperture / 2)
 
-  ctx.fillStyle = gradient
-  ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(
+      this.pov_size * Math.cos(0),
+      this.pov_size * Math.sin(0)
+    )
+    ctx.arc(0, 0, this.pov_size, 0, this.aperture)
+    ctx.lineTo(0, 0)
 
-  ctx.restore()
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.pov_size)
+    gradient.addColorStop(0, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0.8)`)
+    gradient.addColorStop(1, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0)`)
 
+    // gradient.addColorStop(0, "rgba(0, 150, 255, 0.8)")
+    // gradient.addColorStop(1, "rgba(0, 150, 255, 0)")
+
+    ctx.fillStyle = gradient
+    ctx.fill()
+
+    ctx.restore()
+  }
+
+  // Position marker
   ctx.beginPath()
   ctx.arc(this.x, this.y, 8, 0, Math.PI * 2)
 
