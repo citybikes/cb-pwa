@@ -591,7 +591,9 @@ window.addEventListener('loc-click', (ev) => {
 })
 
 // XXX deprecated, but nothing similar exists /shrug
-window.addEventListener("deviceorientation", event => {
+// For safari, look into:
+// https://stackoverflow.com/questions/56514116/how-do-i-get-deviceorientationevent-and-devicemotionevent-to-work-on-safari
+window.addEventListener("deviceorientationabsolute", event => {
   // deg to rad
   // convert also to canvas reference
   // alpha is degrees to north
