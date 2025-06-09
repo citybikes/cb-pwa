@@ -600,6 +600,12 @@ window.addEventListener("deviceorientationabsolute", event => {
   if (pov)
     pov.angle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
 })
+
+navigator.permissions.query({ name: 'geolocation' }).then(permission => {
+  if (permission.state == "granted") {
+    locator.track()
+  }
+})
 </script>
 
 <style>
