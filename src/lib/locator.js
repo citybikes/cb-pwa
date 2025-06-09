@@ -13,6 +13,7 @@ const defaults = {
   accuracy: ACC_LOW,
   timeout: 6000,
   state: writable(LOC_OFF),
+  maximumAge: 0,
 }
 
 const geo = window.navigator.geolocation
@@ -36,8 +37,7 @@ Locator.prototype.watchOptions = function () {
     timeout: this.options.timeout,
     // device can return a cached (age) position
     // 0: means no-cache
-    // inf: whatever age
-    maximumAge: 0,
+    maximumAge: this.options.maximumAge,
   }
 }
 
