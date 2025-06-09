@@ -61,7 +61,11 @@ let bg = getBgColor()
 
 const data = turf.featureCollection([])
 
-const locator = new Locator({state: locationState})
+const locator = new Locator({
+  state: locationState,
+  timeout: Infinity,
+  accuracy: "HIGH",
+})
 
 const sources = {
   stations_lite: {
