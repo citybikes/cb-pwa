@@ -439,9 +439,29 @@ onMount(() => {
     })
 
 
-    map.on('click', 'stations', (ev) => {
+    map.on('click', (ev) => {
+      if (map.getZoom() < 10) return
+
+      // Instead of precise clicking layer elements, add a fat finger threshold
+      // to check what features are around that point
+      const threshold = map.getZoom() * 0.8
+
+      // Set `bbox` as 5px reactangle area around clicked point.
+      const bbox = [
+          [ev.point.x - threshold, ev.point.y - threshold],
+          [ev.point.x + threshold, ev.point.y + threshold]
+      ]
+
+      const selectedFeatures = map.queryRenderedFeatures(bbox, {
+          layers: ['stations'],
+      })
+
+      if (selectedFeatures.length == 0) return
+
+      const element = selectedFeatures[0]
+
       locator.unlock()
-      const element = ev.features[0]
+
       map.removeFeatureState({source: 'stations'})
       map.setFeatureState({source: 'stations', id: element.id}, {selected: true})
       selected = element
