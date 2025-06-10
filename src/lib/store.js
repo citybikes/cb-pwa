@@ -19,6 +19,12 @@ try {
 
 export const zoom = writable(last_zoom)
 export const center = writable(last_center)
+export const bearing = writable({
+  bearing: 0,
+  pitch: 0,
+  pitchInRadians: 0,
+  roll: 0,
+})
 
 // Persist zoom and center to local storage
 zoom.subscribe( async (z) => {

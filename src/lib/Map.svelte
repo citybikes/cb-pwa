@@ -17,7 +17,7 @@ import { Locator } from './locator.js'
 import { getStdColor } from './utils.js'
 
 import { selectedStation, loading, locationState } from './store.js'
-import { center, zoom } from './store.js'
+import { center, zoom, bearing } from './store.js'
 
 const update_info = (element) => {
   const sts = stmap[element.properties.id]
@@ -474,6 +474,25 @@ onMount(() => {
         loadVisibleNets()
       }
     })
+
+    map.on('rotate', (ev) => {
+      bearing.set({
+        pitch: map.getPitch(),
+        roll: map.getRoll(),
+        bearing: map.getBearing(),
+        pitchInRadians: map.transform.pitchInRadians,
+      })
+    })
+
+    map.on('pitch', (ev) => {
+      bearing.set({
+        pitch: map.getPitch(),
+        roll: map.getRoll(),
+        bearing: map.getBearing(),
+        pitchInRadians: map.transform.pitchInRadians,
+      })
+    })
+
     animate()
   })
 
@@ -603,6 +622,11 @@ window.addEventListener("deviceorientationabsolute", event => {
   // alpha is degrees to north
   if (pov)
     pov.angle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
+})
+
+window.addEventListener("bearing-click", event => {
+  map.resetNorth()
+  map.resetNorthPitch()
 })
 
 navigator.permissions.query({ name: 'geolocation' }).then(permission => {
