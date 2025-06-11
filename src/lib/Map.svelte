@@ -20,6 +20,11 @@ import { selectedStation, loading, locationState } from './store.js'
 import { center, zoom, bearing } from './store.js'
 
 const update_info = (element) => {
+  if (element == null) {
+    selectedStation.set(null)
+    return
+  }
+
   const sts = stmap[element.properties.id]
 
   let distance
@@ -440,6 +445,24 @@ onMount(() => {
 
 
     map.on('click', (ev) => {
+      const { x, y } = ev.point
+
+      let clicked = false
+
+      // Check if we have hit any canvas element
+      cwrapper.entities.forEach((p) => {
+        if (p.visible() &&
+          x > p.x - p.l/2 &&
+          x < p.x + p.l/2 &&
+          y > p.y - p.l/2 &&
+          y < p.y + p.l/2) {
+          p.click(ev)
+          clicked = true
+        }
+      })
+
+      if (clicked) return
+
       if (map.getZoom() < 10) return
 
       // Instead of precise clicking layer elements, add a fat finger threshold
@@ -456,7 +479,15 @@ onMount(() => {
           layers: ['stations'],
       })
 
-      if (selectedFeatures.length == 0) return
+      if (selectedFeatures.length == 0) {
+        map.removeFeatureState({source: 'stations'})
+        selected = null
+        update_info(null)
+        selected_pointer.lat = null
+        selected_pointer.lng = null
+
+        return
+      }
 
       const element = selectedFeatures[0]
 
@@ -514,20 +545,6 @@ onMount(() => {
     })
 
     animate()
-  })
-
-  // XXX Again, don't do this
-  document.querySelector('#map').addEventListener('click', (ev) => {
-    locator.unlock()
-    const {x, y} = {x: ev.layerX, y: ev.layerY}
-    cwrapper.entities.forEach((p) => {
-      if (x > p.x - p.l/2 &&
-        x < p.x + p.l/2 &&
-        y > p.y - p.l/2 &&
-        y < p.y + p.l/2) {
-        p.click(ev)
-      }
-    })
   })
 })
 

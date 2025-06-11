@@ -96,7 +96,7 @@ CoarsePointer.prototype.onScreen = function () {
 }
 
 CoarsePointer.prototype.visible = function () {
-  return this.onScreen() ? this.onscreen : this.offscreen
+  return (this.lat && this.lng && (this.onScreen() ? this.onscreen : this.offscreen))
 }
 
 CoarsePointer.prototype.resize = function () {}
