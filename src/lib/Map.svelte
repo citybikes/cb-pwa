@@ -15,6 +15,7 @@ import * as turf from '@turf/turf'
 import { Canvas, CoarsePointer, POV } from './canvas.js'
 import { Locator } from './locator.js'
 import { getStdColor } from './utils.js'
+import { MapInteractor } from './map.js'
 
 import { selectedStation, loading, locationState } from './store.js'
 import { center, zoom, bearing } from './store.js'
@@ -401,6 +402,8 @@ onMount(() => {
     zoom: get(zoom) ?? default_zoom,
   })
 
+  const map_i = new MapInteractor(map)
+
   // XXX go figure
   selected_pointer = new CoarsePointer(map, null, null, [0,0,0], false, true)
   cwrapper.add(selected_pointer)
@@ -443,8 +446,43 @@ onMount(() => {
       zoom.set(map.getZoom())
     })
 
-
     map.on('click', (ev) => {
+      console.log('click', ev)
+      fireEvent(ev)
+    })
+
+    function deselectEvent(ev) {
+      const { x, y } = ev.point
+
+      if (map.getZoom() < 10) return
+
+      // Instead of precise clicking layer elements, add a fat finger threshold
+      // to check what features are around that point
+      const threshold = map.getZoom() * 0.8
+
+      // Set `bbox` as 5px reactangle area around clicked point.
+      const bbox = [
+          [ev.point.x - threshold, ev.point.y - threshold],
+          [ev.point.x + threshold, ev.point.y + threshold]
+      ]
+
+      const selectedFeatures = map.queryRenderedFeatures(bbox, {
+          layers: ['stations'],
+      })
+
+      if (selectedFeatures.length == 0) {
+        map.removeFeatureState({source: 'stations'})
+        selected = null
+        update_info(null)
+        selected_pointer.lat = null
+        selected_pointer.lng = null
+        return
+      }
+    }
+
+    map_i.init(deselectEvent)
+
+    function fireEvent(ev) {
       const { x, y } = ev.point
 
       let clicked = false
@@ -479,15 +517,8 @@ onMount(() => {
           layers: ['stations'],
       })
 
-      if (selectedFeatures.length == 0) {
-        map.removeFeatureState({source: 'stations'})
-        selected = null
-        update_info(null)
-        selected_pointer.lat = null
-        selected_pointer.lng = null
-
+      if (selectedFeatures.length == 0)
         return
-      }
 
       const element = selectedFeatures[0]
 
@@ -515,7 +546,7 @@ onMount(() => {
       }
 
       update_info(selected)
-    })
+    }
 
     // XXX!!!! Look into slots
 
