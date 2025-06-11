@@ -173,6 +173,8 @@ function POV(map, latlng, bg, fg) {
 
   this.bg = bg ?? [255, 0, 0]
   this.fg = fg ?? [0, 0, 255]
+
+  this.l = 8
 }
 
 POV.prototype.update = function () {
@@ -187,6 +189,10 @@ POV.prototype.update = function () {
 POV.prototype.click = function () {}
 
 POV.prototype.resize = function () {}
+
+POV.prototype.visible = function () {
+  return this.lat && this.lng
+}
 
 POV.prototype.draw = function (ctx) {
 
@@ -224,7 +230,7 @@ POV.prototype.draw = function (ctx) {
 
   // Position marker
   ctx.beginPath()
-  ctx.arc(this.x, this.y, 8, 0, Math.PI * 2)
+  ctx.arc(this.x, this.y, this.l, 0, Math.PI * 2)
 
   // ctx.fillStyle = '#007bff'
   // ctx.strokeStyle = 'white';
