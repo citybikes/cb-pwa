@@ -48,6 +48,10 @@ Locator.prototype.watch = function (options) {
 
   this.state.set(LOC_WATCHING)
 
+  // XXX this callback gets called A LOT
+  // Look at filtering valid positions:
+  // https://github.com/RichardMaher/Brotkrumen/blob/master/TravelManagerPolyfill.js
+  // for now, let's just _at least_ dedupe positions
   this.watchId = geo.watchPosition(
     (position) => {
       this.state.set(this.desiredState)
