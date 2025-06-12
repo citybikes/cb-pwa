@@ -278,12 +278,8 @@ const layers = {
 }
 
 
-const paint = () => {
-  map.triggerRepaint()
-  cwrapper.paint()
-}
-
 const resize = () => {
+  console.log("Resize")
   const info = document.querySelector('.infobox') ?? {}
 
   const container = document.querySelector('.map-container')
@@ -296,14 +292,33 @@ const resize = () => {
   cwrapper.resize()
 }
 
-const animate = () => {
-  update()
-  paint()
-  requestAnimationFrame(animate)
+function angleDelta(a, b) {
+  const diff = ((b - a + Math.PI) % (2 * Math.PI)) - Math.PI;
+  return diff < -Math.PI ? diff + 2 * Math.PI : diff;
 }
 
-const update = () => {
-  cwrapper.update()
+let targetAngle = null
+
+const animate = () => {
+  // XXX this could be done in the canvas element on itself ...
+  if (targetAngle != null && pov != null && pov.angle != targetAngle) {
+    if (pov.visible()) {
+      const delta = angleDelta(pov.angle, targetAngle)
+      if (Math.abs(delta) < 0.2) {
+        // ignore delta
+      } else {
+        // lerp to angle
+        pov.angle += delta * 0.1
+        cwrapper.invalidate()
+      }
+    }
+  }
+
+  if (cwrapper.dirty) {
+    cwrapper.paint()
+  }
+
+  requestAnimationFrame(animate)
 }
 
 let map
@@ -385,6 +400,7 @@ onMount(() => {
   const ctx = canvas.getContext("2d")
 
   cwrapper = new Canvas(canvas, ctx)
+  resize()
 
   selectedStation.subscribe(async (station) => {
     // If needed, move this to requestAnimationFrame and forget
@@ -429,6 +445,11 @@ onMount(() => {
     })
 
     map.on('move', (ev) => {
+      // Makes it so canvas elements that depend on map projection move
+      // smoothly together with the map
+      cwrapper.invalidate()
+      cwrapper.paint()
+
       loadVisibleNets()
     })
 
@@ -470,6 +491,8 @@ onMount(() => {
       const threshold = map.getZoom() * 0.8
 
       // Set `bbox` as 5px reactangle area around clicked point.
+      // XXX is this enough? too much? maybe should be dependent on the zoom
+      // level and other stuff ?
       const bbox = [
           [ev.point.x - threshold, ev.point.y - threshold],
           [ev.point.x + threshold, ev.point.y + threshold]
@@ -621,9 +644,6 @@ window.addEventListener('loc-update', (ev) => {
     pov_pointer.lng = lng
   }
 
-  update()
-  paint()
-
   if (ev.detail.state == "LOCKING") {
     // XXX Only do this when user is "locked in" (dirty flag on map)
     const zoom = Math.max(map.getZoom(), 15)
@@ -632,6 +652,8 @@ window.addEventListener('loc-update', (ev) => {
 
   if (selected !== undefined)
     update_info(selected)
+
+  cwrapper.invalidate()
 })
 
 
@@ -647,8 +669,7 @@ document.addEventListener('theme-updated', (ev) => {
   bg[1] = _bg[1]
   bg[2] = _bg[2]
 
-  update()
-  paint()
+  cwrapper.invalidate()
 })
 
 window.addEventListener('infobox-click', (ev) => {
@@ -685,12 +706,20 @@ window.addEventListener('loc-click', (ev) => {
 // XXX deprecated, but nothing similar exists /shrug
 // For safari, look into:
 // https://stackoverflow.com/questions/56514116/how-do-i-get-deviceorientationevent-and-devicemotionevent-to-work-on-safari
+
 window.addEventListener("deviceorientationabsolute", event => {
+  if (! pov) return
+
   // deg to rad
   // convert also to canvas reference
   // alpha is degrees to north
-  if (pov)
-    pov.angle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
+  targetAngle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
+  if (pov.angle == null) {
+    pov.angle = targetAngle
+    cwrapper.invalidate()
+  } else if (!pov.visible()) {
+    pov.angle = targetAngle
+  }
 })
 
 window.addEventListener("bearing-click", event => {

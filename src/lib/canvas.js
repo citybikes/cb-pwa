@@ -8,6 +8,7 @@
 
 
 const DEBUG_HITBOX = false
+const DEBUG_PAINT_MS = false
 
 function Canvas(canvas, ctx, w, h) {
   this.canvas = canvas
@@ -15,6 +16,7 @@ function Canvas(canvas, ctx, w, h) {
   this.entities = []
   this.w = w
   this.h = h
+  this.dirty = true
 
   this._trackPixelRatio()
 }
@@ -26,12 +28,14 @@ Canvas.prototype._trackPixelRatio = function () {
   const updatePixelRatio = () => {
     media.removeEventListener("change", updatePixelRatio)
     media.addEventListener("change", updatePixelRatio)
+    console.log("updating pixel ratio...")
     this.resize()
   }
   updatePixelRatio()
 }
 
 Canvas.prototype.resize = function () {
+  console.log("Canvas resize")
   this.scale = window.devicePixelRatio
 
   this.canvas.style.width = `${this.w}px`
@@ -46,9 +50,12 @@ Canvas.prototype.resize = function () {
   this.ctx.scale(this.scale, this.scale)
 
   this.entities.forEach((e) => e.resize())
+  this.invalidate()
 }
 
 Canvas.prototype.paint = function () {
+  const t0 = performance.now()
+
   const ctx = this.ctx
 
   ctx.clearRect(0, 0, this.w, this.h)
@@ -61,10 +68,23 @@ Canvas.prototype.paint = function () {
   ctx.strokeStyle = '#FFF'
   ctx.strokeText("CityBikes", 20, this.h - 20)
   ctx.fillText("CityBikes", 20, this.h - 20)
+
+  const t1 = performance.now()
+  if (DEBUG_PAINT_MS) {
+    ctx.fillStyle = '#000'
+    ctx.fillText(`${(t1 - t0)} ms`, 20, 20)
+  }
+
+  this.dirty = false
 }
 
 Canvas.prototype.update = function () {
   this.entities.forEach((e) => e.update())
+}
+
+Canvas.prototype.invalidate = function () {
+  this.dirty = true
+  this.update()
 }
 
 Canvas.prototype.add = function (entity) {
@@ -74,6 +94,7 @@ Canvas.prototype.add = function (entity) {
   // ?? maybe ??
   entity.resize()
   this.entities.push(entity)
+  this.invalidate()
 }
 
 function CoarsePointer(map, latlng, bg, fg, onscreen, offscreen) {
@@ -141,6 +162,7 @@ CoarsePointer.prototype.draw = function (ctx) {
   ctx.beginPath()
   ctx.fillStyle = `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 1)`
   ctx.strokeStyle = `rgba(${fg[0]}, ${fg[1]}, ${fg[2]}, 1)`
+  ctx.lineWidth = 2
   ctx.moveTo(0, 0)
   ctx.lineTo(l / 5, -l / 2)
   ctx.lineTo(-l / 5, -l / 2)
@@ -233,10 +255,14 @@ POV.prototype.click = function () {}
 POV.prototype.resize = function () {}
 
 POV.prototype.visible = function () {
-  return this.lat && this.lng
+  return this.lat && this.lng &&
+         this.x > - 100 && this.y > - 100 &&
+         this.x < this._c.w + 100 && this.y < this._c.h + 100
 }
 
 POV.prototype.draw = function (ctx) {
+
+  if (!this.visible()) return
 
   const bg = this.bg
   const fg = this.fg
