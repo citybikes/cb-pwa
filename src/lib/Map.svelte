@@ -451,8 +451,16 @@ onMount(() => {
       fireEvent(ev)
     })
 
+    let canvas_element_clicked = false
+
     function deselectEvent(ev) {
       const { x, y } = ev.point
+
+      // ack possible canvas element clicked and do nothing
+      if (canvas_element_clicked) {
+        canvas_element_clicked = false
+        return
+      }
 
       if (map.getZoom() < 10) return
 
@@ -495,11 +503,13 @@ onMount(() => {
           y > p.y - p.l/2 &&
           y < p.y + p.l/2) {
           p.click(ev)
-          clicked = true
+          canvas_element_clicked = true
         }
       })
 
-      if (clicked) return
+      if (clicked) {
+        return
+      }
 
       if (map.getZoom() < 10) return
 
