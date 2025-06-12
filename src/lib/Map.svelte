@@ -457,6 +457,7 @@ onMount(() => {
       const { x, y } = ev.point
 
       // ack possible canvas element clicked and do nothing
+      // XXX this is rube goldberg-y
       if (canvas_element_clicked) {
         canvas_element_clicked = false
         return
@@ -493,22 +494,12 @@ onMount(() => {
     function fireEvent(ev) {
       const { x, y } = ev.point
 
-      let clicked = false
-
-      // Check if we have hit any canvas element
-      cwrapper.entities.forEach((p) => {
-        if (p.visible() &&
-          x > p.x - p.l/2 &&
-          x < p.x + p.l/2 &&
-          y > p.y - p.l/2 &&
-          y < p.y + p.l/2) {
-          p.click(ev)
+      for (let i = 0; i < cwrapper.entities.length; i++) {
+        if (cwrapper.entities[i].hit(x, y)) {
+          cwrapper.entities[i].click(ev)
           canvas_element_clicked = true
+          return
         }
-      })
-
-      if (clicked) {
-        return
       }
 
       if (map.getZoom() < 10) return

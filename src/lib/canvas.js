@@ -6,6 +6,9 @@
 
 // XXX Optimize update / draw since this is now called on requestAnimationFrame
 
+
+const DEBUG_HITBOX = false
+
 function Canvas(canvas, ctx, w, h) {
   this.canvas = canvas
   this.ctx = ctx
@@ -88,6 +91,8 @@ function CoarsePointer(map, latlng, bg, fg, onscreen, offscreen) {
   this.l = l
   this.angle = 0
   this.proj = { x: 0, y: 0 }
+
+  this.fat_finger_threshold = 1.25
 }
 
 CoarsePointer.prototype.onScreen = function () {
@@ -144,16 +149,42 @@ CoarsePointer.prototype.draw = function (ctx) {
   ctx.stroke()
 
   ctx.restore()
+
+  if (DEBUG_HITBOX) {
+    ctx.beginPath()
+    const {cx, cy, radius} = this.hitbox()
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    ctx.stroke()
+  }
 }
 
 CoarsePointer.prototype.click = function (ev) {
-  if (!this.lat || !this.lng) return
-
-  if (!this.visible()) return
-
   const zoom = Math.max(this.map.getZoom(), 15)
   const center = [this.lng, this.lat]
   this.map.easeTo({ center: center, zoom: zoom })
+}
+
+CoarsePointer.prototype.hitbox = function() {
+  const dspl = this.l/3.4
+  const center = [
+    this.x + (dspl * Math.sin(this.angle)),
+    this.y - (dspl * Math.cos(this.angle)),
+  ]
+  const radius = dspl * this.fat_finger_threshold
+
+  return {cx: center[0], cy: center[1], radius: radius}
+}
+
+CoarsePointer.prototype.hit = function (x, y) {
+  // If it's not visible, surely it can't be hit
+  if (! this.visible()) return false
+
+  const {cx, cy, radius} = this.hitbox()
+
+  const dx = x - cx
+  const dy = y - cy
+
+  return (dx * dx + dy * dy) <= (radius * radius)
 }
 
 
@@ -184,6 +215,17 @@ POV.prototype.update = function () {
   this.x = proj.x
   this.y = proj.y
   this.pov_size = 10 * zoom * 0.4
+}
+
+POV.prototype.hit = function (x, y) {
+  // If it's not visible, surely it can't be hit
+  if (! this.visible()) return false
+
+  const radius = this.l
+  const dx = x - this.x
+  const dy = y - this.y
+
+  return (dx * dx + dy * dy) <= (radius * radius)
 }
 
 POV.prototype.click = function () {}
