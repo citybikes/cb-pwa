@@ -521,6 +521,7 @@ onMount(() => {
         if (cwrapper.entities[i].hit(x, y)) {
           cwrapper.entities[i].click(ev)
           canvas_element_clicked = true
+          locator.unlock()
           return
         }
       }
