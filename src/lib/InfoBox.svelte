@@ -1,9 +1,9 @@
 <script>
-  import { get } from 'svelte/store';
-  import { selectedStation } from './store.js'
   import { derived } from 'svelte/store'
 
-  const distanceStr = derived(selectedStation, $st => {
+  export let station
+
+  const distanceStr = derived(station, $st => {
     if (!$st?.distance) return ''
     const kms = Math.floor($st.distance)
     const mts = Math.floor(($st.distance - kms) * 1000)
@@ -12,20 +12,22 @@
 
   const handleClick = () => {
     window.dispatchEvent(new CustomEvent("infobox-click", {
-      detail: get(selectedStation),
+      detail: $station,
     }))
   }
+
+
 </script>
 
-{#if $selectedStation}
+{#if $station}
   <div class="infobox" on:click={handleClick}>
-    <h1>{$selectedStation.name.toLowerCase()}</h1>
+    <h1>{$station.name.toLowerCase()}</h1>
     <span class="bikes">
-      {$selectedStation.free_bikes} bikes
-      {#if $selectedStation.extra?.ebikes} ({$selectedStation.extra.ebikes}⚡){/if}
+      {$station.free_bikes} bikes
+      {#if $station.extra?.ebikes} ({$station.extra.ebikes}⚡){/if}
     </span>
     |
-    <span class="slots">{$selectedStation.empty_slots} slots</span>
+    <span class="slots">{$station.empty_slots} slots</span>
     {#if $distanceStr}
     |
     <span class="distance">{$distanceStr}</span>

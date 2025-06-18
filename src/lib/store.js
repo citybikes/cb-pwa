@@ -1,20 +1,25 @@
-import { writable } from 'svelte/store'
+import { writable, derived } from 'svelte/store'
 
 import { LngLat } from 'maplibre-gl'
+
+import { NetworkManager } from './network_manager.js'
 
 export const selectedStation = writable(null)
 export const loading = writable(false)
 
 let last_zoom
 let last_center
+let last_filter
 
 try {
   last_zoom = parseInt(localStorage.getItem('last_zoom'))
   last_center = LngLat.convert(JSON.parse(localStorage.getItem('last_center')))
+  last_filter = JSON.parse(localStorage.getItem('last_filter'))
 } catch (error) {
   console.log("err", error)
   last_zoom = null
   last_center = null
+  last_filter = null
 }
 
 export const zoom = writable(last_zoom)
@@ -36,3 +41,7 @@ center.subscribe( async (c) => {
 })
 
 export const locationState = writable("OFF")
+
+export const visible_networks_id = writable([])
+export const network_filter = writable(last_filter || {name: null, tags: null})
+export const filter_hydrated = writable(false)

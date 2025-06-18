@@ -62,12 +62,12 @@ Canvas.prototype.paint = function () {
   // XXX rename to paint for consistency
   this.entities.forEach((e) => e.draw(ctx))
 
-  ctx.font = "bold 12px 'Inter Variable', ui-sans-serif, system-ui, sans-serif";
-  ctx.fillStyle = '#555'
-  ctx.lineWidth = 2
-  ctx.strokeStyle = '#FFF'
-  ctx.strokeText("CityBikes", 20, this.h - 20)
-  ctx.fillText("CityBikes", 20, this.h - 20)
+  // ctx.font = "bold 12px 'Inter Variable', ui-sans-serif, system-ui, sans-serif";
+  // ctx.fillStyle = '#555'
+  // ctx.lineWidth = 2
+  // ctx.strokeStyle = '#FFF'
+  // ctx.strokeText("CityBikes", 20, this.h - 20)
+  // ctx.fillText("CityBikes", 20, this.h - 20)
 
   const t1 = performance.now()
   if (DEBUG_PAINT_MS) {

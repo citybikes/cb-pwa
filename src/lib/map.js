@@ -14,6 +14,7 @@ function MapInteractor(map) {
   this.clickEv = null
 }
 
+// XXX clearly hacky. think this over
 MapInteractor.prototype.init = function (onSingleTouch) {
   this.map._container.addEventListener('pointerdown', (e) => {
     e.point = {

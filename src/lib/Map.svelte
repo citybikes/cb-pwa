@@ -16,11 +16,29 @@ import { Canvas, CoarsePointer, POV } from './canvas.js'
 import { Locator } from './locator.js'
 import { getStdColor } from './utils.js'
 import { MapInteractor } from './map.js'
+import { NetworkManager } from './network_manager.js'
 
 import { selectedStation, loading, locationState } from './store.js'
+import { visible_networks_id, network_filter } from './store.js'
+import { filter_hydrated } from './store.js'
 import { center, zoom, bearing } from './store.js'
 
 const DEBUG_FPS = false
+
+const setFilter = async ({name, tags}) => {
+  // Who the fuck invented this syntax.
+  // Get out of here ASAP and do filtering on your own end
+  const name_filter = name ? ["==", ["get", "nname"], name] : null
+  map.setFilter(layers.stations.id, name_filter)
+  map.setFilter(layers.stations_labels.id, name_filter)
+
+  const nets_filter = tags ? ["in", ["get", "tag"], ["literal", tags]] : null
+  map.setFilter(layers.stations_lite.id, nets_filter)
+  map.setFilter(layers.hulls_net.id, nets_filter)
+  map.setFilter(layers.hull_labels.id, nets_filter)
+  loadVisibleNets(true)
+}
+
 
 const update_info = (element) => {
   if (element == null) {
@@ -337,6 +355,7 @@ const animate = () => {
   requestAnimationFrame(animate)
 }
 
+
 let map
 const stmap = {}
 const net_promises = {}
@@ -344,7 +363,7 @@ let pov, pov_pointer, selected_pointer
 
 // We can make this use a store so we can use it as a state (to generate filtering)
 const getVisibleNets = (map) => {
-  if (map.getZoom() < 10) return []
+  if (map.getZoom() < 10) return new Set()
 
   // // XXX sometimes this is incorrect
   // let nets = new Set(map.queryRenderedFeatures(map.getBounds(), {layers: ['hulls_net']}).map(
@@ -359,10 +378,30 @@ const getVisibleNets = (map) => {
   return nets
 }
 
-const loadVisibleNets = () => {
+let visible_nets = new Set()
+
+const loadVisibleNets = (force = false) => {
   const nets = getVisibleNets(map)
+  const filter = get(network_filter)
+  const filter_applies = filter.tags && filter.tags.some(t => nets.has(t))
+  console.log("Load visible nets", force, filter, filter_applies)
+
+  // XXX Only set store if something changed since this triggers UI changes
+  if (visible_nets.difference(nets).size == 0 &&
+      nets.difference(visible_nets).size == 0 &&
+      !force)
+    return
+
+  console.log("Really doing it")
+
+  visible_networks_id.set(nets)
+  visible_nets = nets
+
   nets.forEach( n => {
     if (net_promises[n] != undefined) return
+
+    // do not load networks that are filtered out if never loaded
+    if (filter_applies && filter.tags && ! filter.tags.includes(n)) return
 
     loading.set(true)
 
@@ -470,6 +509,8 @@ onMount(() => {
     map.addLayer(layers.stations)
     map.addLayer(layers.stations_labels)
 
+    network_filter.subscribe(setFilter)
+
     map.on('resize', (ev) => {
       resize()
       loadVisibleNets()
@@ -501,6 +542,11 @@ onMount(() => {
     map.on('click', (ev) => {
       console.log('click', ev)
       fireEvent(ev)
+    })
+
+    map.once('idle', (ev) => {
+      filter_hydrated.set(true)
+      loadVisibleNets()
     })
 
     let canvas_element_clicked = false
@@ -606,6 +652,8 @@ onMount(() => {
 
     // XXX!!!! Look into slots
 
+    // XXX This might be faster than registering on idle, but this
+    // makes it nice
     map.on('data', (ev) => {
       if (ev.sourceId == 'stations-lite' && ev.isSourceLoaded) {
         // XXX: move to a proper load event this is a hack
@@ -658,7 +706,7 @@ window.addEventListener('loc-update', (ev) => {
   //     geolocateSource: true // tag this camera change so it won't cause the control to change to background state
   // });
 
-  console.log("Got position", lat, lng, ev.detail.state, ev.detail.position)
+  // console.log("Got position", lat, lng, ev.detail.state, ev.detail.position)
 
   if (! pov ) {
     pov = new POV(map, [lat, lng], bg, fg)
