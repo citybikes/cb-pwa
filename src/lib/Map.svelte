@@ -20,6 +20,8 @@ import { MapInteractor } from './map.js'
 import { selectedStation, loading, locationState } from './store.js'
 import { center, zoom, bearing } from './store.js'
 
+const DEBUG_FPS = false
+
 const update_info = (element) => {
   if (element == null) {
     selectedStation.set(null)
@@ -299,7 +301,19 @@ function angleDelta(a, b) {
 
 let targetAngle = null
 
+let stats = null
+
+if (DEBUG_FPS) {
+  import('stats.js').then((Stats) => {
+    stats = new Stats.default()
+    stats.dom.style.cssText += 'margin: 65px 0 0 10px;'
+    document.body.appendChild(stats.dom)
+  })
+}
+
+
 const animate = () => {
+  if (stats) stats.begin()
   // XXX this could be done in the canvas element on itself ...
   if (targetAngle != null && pov != null && pov.angle != targetAngle) {
     if (pov.visible()) {
@@ -317,6 +331,8 @@ const animate = () => {
   if (cwrapper.dirty) {
     cwrapper.paint()
   }
+
+  if (stats) stats.end()
 
   requestAnimationFrame(animate)
 }
@@ -417,6 +433,21 @@ onMount(() => {
     center: get(center) ?? loc,
     zoom: get(zoom) ?? default_zoom,
   })
+
+  if (DEBUG_FPS) {
+    import('stats.js').then((Stats) => {
+      const stats = new Stats.default()
+      stats.dom.style.cssText += 'margin: 10px;'
+      document.body.appendChild(stats.dom)
+      const orig = map._render
+      map._render = (...args) => {
+        stats.begin()
+        const res = orig.apply(map, args)
+        stats.end()
+        return res
+      }
+    })
+  }
 
   const map_i = new MapInteractor(map)
 

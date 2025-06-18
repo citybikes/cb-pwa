@@ -24,6 +24,7 @@
     "canvas-confetti": "^1.9.3",
     "maplibre-gl": "^5.5.0",
     "pmtiles": "^4.3.0",
+    "stats.js": "^0.17.0",
     "tailwindcss": "^4.1.8"
   }
 }
