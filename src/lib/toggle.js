@@ -58,6 +58,7 @@ const Toggle = () => {
         doc.classList.remove(c_theme)
         doc.classList.add(theme)
         c_theme = theme
+        themeColor.content = window.getComputedStyle(document.documentElement).getPropertyValue('--background')
     }
 
     const save = (theme) => store.setItem('theme', theme)

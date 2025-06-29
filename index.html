@@ -6,7 +6,7 @@
     <title>CityBikes</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="var(--background)" />
+    <meta id="themeColor" name="theme-color" content="var(--background)" />
     <script type="text/javascript">
       // quick hack to avoid theme to flicker
       const [t, bg, fg] = (localStorage.getItem('theme') ?? 'citybikes').split(';');
@@ -14,9 +14,15 @@
       fg ? document.documentElement.style.setProperty('--text-main', fg):null
       t ? document.documentElement.classList.add(t):null
 
+      bg ? themeColor.content=bg:null
+
       // Disable annoying install prompt from browsers
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault()
+      })
+
+      window.addEventListener('DOMContentLoaded', () => {
+        themeColor.content = window.getComputedStyle(document.documentElement).getPropertyValue('--background')
       })
     </script>
   </head>
