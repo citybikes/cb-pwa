@@ -2,9 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CityBikes</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="var(--background)" />
     <script type="text/javascript">
       // quick hack to avoid theme to flicker
       const [t, bg, fg] = (localStorage.getItem('theme') ?? 'citybikes').split(';');
@@ -17,7 +19,6 @@
         event.preventDefault()
       })
     </script>
-    <meta name="theme-color" content="var(--background)" />
   </head>
   <body>
     <div id="app"></div>
