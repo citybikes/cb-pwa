@@ -1,5 +1,7 @@
 # Citybikes PWA
 
+<a href="https://app.citybik.es"><img src="./public/favicon.svg" alt="logo" align="right"></a>
+
 A bike share app to rule them all. It's built with the following in mind:
 
 * Fast - Simple - Reliable
