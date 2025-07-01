@@ -1,0 +1,4 @@
+```
+mkcert localhost
+mkcert -install
+```

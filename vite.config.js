@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+
 import { defineConfig } from "vite"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
 import tailwindcss from "@tailwindcss/vite"
@@ -16,5 +19,14 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    ...(
+      fs.existsSync(path.resolve(__dirname, 'certs/localhost+1.pem')) ?
+      {
+        https: {
+          key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+1-key.pem')),
+          cert: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+1.pem')),
+        }
+      } : {}
+    )
   },
 })
