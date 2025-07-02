@@ -31,6 +31,7 @@ const setFilter = async ({name, tags}) => {
   const name_filter = name ? ["==", ["get", "nname"], name] : null
   map.setFilter(layers.stations.id, name_filter)
   map.setFilter(layers.stations_labels.id, name_filter)
+  map.setFilter(layers.stations_status_labels.id, name_filter)
 
   const nets_filter = tags ? ["in", ["get", "tag"], ["literal", tags]] : null
   map.setFilter(layers.stations_lite.id, nets_filter)
@@ -207,7 +208,7 @@ const layers = {
       // WTF
       // https://docs.mapbox.com/style-spec/reference/layers/#symbol
       // https://docs.mapbox.com/style-spec/reference/expressions/#types-format
-      "text-field": '{nname}\n{bikes} bikes',
+      "text-field": '{nname}',
       "text-font": ["Noto Sans Regular"],
       "text-size": 12,
       "symbol-placement": "point",
@@ -220,7 +221,30 @@ const layers = {
       "text-halo-width": 2,
     }
   },
-
+  stations_status_labels: {
+    id: 'stations-status-labels',
+    type: 'symbol',
+    source: 'stations',
+    minzoom: 15,
+    layout: {
+      "text-field": '{bikes}',
+      "text-font": ["Noto Sans Regular"],
+      "text-size": [
+        'interpolate', ['linear'], ['zoom'],
+        15, 8,
+        18, 12,
+      ],
+      "symbol-placement": "point",
+      "text-offset": [0, 0],
+      "text-justify": "center",
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#fff",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 0.3,
+    }
+  },
   hull_labels: {
     id: 'hull-labels',
     type: 'symbol',
@@ -506,8 +530,9 @@ onMount(() => {
     map.addLayer(layers.outliers)
     map.addLayer(layers.hulls_net)
     map.addLayer(layers.hull_labels)
-    map.addLayer(layers.stations)
     map.addLayer(layers.stations_labels)
+    map.addLayer(layers.stations)
+    map.addLayer(layers.stations_status_labels)
 
     network_filter.subscribe(setFilter)
 
