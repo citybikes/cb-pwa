@@ -1,6 +1,6 @@
 class NetworkManager {
 
-  endpoint = '/networks/'
+  endpoint = '/networks'
 
   static network_list = null
   static networks = new Map()
@@ -33,11 +33,28 @@ class NetworkManager {
   }
 
   getNetwork(id) {
-    if (! NetworkManager.promises.has(id)) {
-      const promise = fetch(`${this.endpoint}`)
+    if (! NetworkManager.networks.has(id)) {
+      const promise = fetch(`${this.endpoint}/${id}`)
+        .then(r=>{
+          if (!r.ok) throw new Error(r.status + " Failed Fetch ")
+          return r.json()
+        })
+        .catch((err) => {
+          NetworkManager.networks.delete(id)
+          throw err
+        })
+      NetworkManager.networks.set(id, promise)
     }
 
-    return NetworkManager.promises.get(id)
+    return NetworkManager.networks.get(id)
+  }
+
+  loaded(id) {
+    return NetworkManager.networks.has(id)
+  }
+
+  get all() {
+    return Promise.all(NetworkManager.networks.values())
   }
 }
 

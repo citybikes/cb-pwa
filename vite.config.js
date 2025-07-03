@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [svelte(), tailwindcss()],
   server: {
     proxy: {
-      "/networks/": {
+      "/networks": {
         target: "https://app.citybik.es",
         changeOrigin: true,
       },

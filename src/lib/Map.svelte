@@ -88,6 +88,8 @@ let bg = getBgColor()
 
 const data = turf.featureCollection([])
 
+const networks = new NetworkManager()
+
 const locator = new Locator({
   state: locationState,
   timeout: Infinity,
@@ -422,20 +424,14 @@ const loadVisibleNets = (force = false) => {
   visible_nets = nets
 
   nets.forEach( n => {
-    if (net_promises[n] != undefined) return
-
     // do not load networks that are filtered out if never loaded
     if (filter_applies && filter.tags && ! filter.tags.includes(n)) return
 
+    if (networks.loaded(n)) return
+
     loading.set(true)
 
-    net_promises[n] = fetch("/networks/" + n).then(r=>{
-      if (!r.ok) throw new Error(r.status + " Failed Fetch ")
-      return r.json()
-    })
-
-    net_promises[n].then(d => {
-
+    networks.getNetwork(n).then(d => {
       d.network.stations.forEach((st) => {
         stmap[st.id] = st
       })
@@ -465,10 +461,10 @@ const loadVisibleNets = (force = false) => {
       // XXX updateData(data) does not work: recreate and report bug
       data.features = [...data.features, ...dd]
       map.getSource('stations').setData(data)
-    }).catch(e => console.log('404'))
+    })
   })
 
-  Promise.all(Object.values(net_promises)).then((e) => {
+  networks.all.then(() => {
     loading.set(false)
   })
 }
