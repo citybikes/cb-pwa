@@ -201,6 +201,15 @@ const layers = {
       'line-dasharray': [2, 2],
     }
   },
+  hulls_net_inv: {
+    id: 'hulls-net-inv',
+    type: 'fill',
+    source: 'hulls',
+    'source-layer': 'tag_hulls_net',
+    paint: {
+      'fill-opacity': 0,
+    }
+  },
   stations_labels: {
     id: 'stations-labels',
     type: 'symbol',
@@ -391,15 +400,14 @@ let pov, pov_pointer, selected_pointer
 const getVisibleNets = (map) => {
   if (map.getZoom() < 10) return new Set()
 
-  // // XXX sometimes this is incorrect
-  // let nets = new Set(map.queryRenderedFeatures(map.getBounds(), {layers: ['hulls_net']}).map(
-  //   f => f.properties.tag
-  // ))
+  // Query for invisible rendered hull polygons to see what networks are
+  // visible, and also stations (XXX add tag info to outliers)
+  const t_layers = [layers.stations_lite.id, layers.hulls_net_inv.id]
 
-  // This always works, but maybe its' too much work
-  let nets = new Set(map.querySourceFeatures('stations-lite', {sourceLayer: 'stations'}).map(
-    f => f.properties.tag
-  ))
+  const nets = new Set(
+    map.queryRenderedFeatures(map.getBounds(), {layers: t_layers})
+      .map(f => f.properties.tag)
+  )
 
   return nets
 }
@@ -525,6 +533,7 @@ onMount(() => {
     map.addLayer(layers.stations_lite)
     map.addLayer(layers.outliers)
     map.addLayer(layers.hulls_net)
+    map.addLayer(layers.hulls_net_inv)
     map.addLayer(layers.hull_labels)
     map.addLayer(layers.stations_labels)
     map.addLayer(layers.stations)
