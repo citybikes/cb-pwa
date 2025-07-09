@@ -1,4 +1,4 @@
-export function getStdColor(str) {
+function getStdColor(str) {
   const _c = document.createElement("canvas")
   const ctx = _c.getContext("2d")
 
@@ -12,3 +12,14 @@ export function getStdColor(str) {
   _c.remove()
   return ret
 }
+
+// XXX hardcode
+const colors = {
+  red: getStdColor("#E33033"),
+  yellow: getStdColor("#FFB43F"),
+  green: getStdColor("#009933"),
+  getFgColor: () => getStdColor(window.getComputedStyle(document.body).getPropertyValue('--text-main')),
+  getBgColor: () => getStdColor(window.getComputedStyle(document.body).getPropertyValue('--background')),
+}
+
+export { getStdColor, colors }

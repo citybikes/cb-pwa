@@ -56,7 +56,12 @@ Locator.prototype.watch = function (options) {
     (position) => {
       this.state.set(this.desiredState)
       this.position = position
-      window.dispatchEvent(this.loc_update_event({position, state: get(this.state)}))
+      window.dispatchEvent(
+        this.loc_update_event({
+          position: this.position,
+          state: get(this.state)
+        })
+      )
     },
     (error) => {
       console.log(error.code, error.message)

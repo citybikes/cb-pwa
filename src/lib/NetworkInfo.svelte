@@ -1,12 +1,8 @@
 <script>
-import { createEventDispatcher } from 'svelte'
 import { onMount } from 'svelte'
 import { get } from 'svelte/store'
 
 import { network_filter } from './store.js'
-import { filter_hydrated } from './store.js'
-
-const dispatch = createEventDispatcher()
 
 export let networks
 
@@ -25,8 +21,11 @@ function select(name, networks) {
     networks_selected = networks
   }
 
+  const filter = {name: name_selected, tags: networks_selected}
+  network_filter.set(filter)
+
   // XXX Use a subscription, but do only on user interaction!!
-  localStorage.setItem('last_filter', JSON.stringify({name: name_selected, tags: networks_selected}))
+  localStorage.setItem('last_filter', JSON.stringify(filter))
 }
 
 $: grouped = (() => {
@@ -38,19 +37,13 @@ $: grouped = (() => {
   return gmap
 })()
 
-$: selected = (() => {
-  // XXX derived something something
-  const _s = grouped.has(name_selected) ? name_selected : null
-  dispatch('net-filter-update', {name: _s, tags: _s ? networks_selected : null})
-  return _s
-})()
+$: selected = grouped.has(name_selected) ? name_selected : null
 
 onMount(() => {
   // Load name and networks if present already ?
   const last_filter = get(network_filter)
   name_selected = last_filter.name
   networks_selected = last_filter.tags
-  dispatch('net-filter-update', {name: name_selected, tags: networks_selected})
 })
 
 </script>

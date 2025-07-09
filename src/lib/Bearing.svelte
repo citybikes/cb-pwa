@@ -1,10 +1,6 @@
 <script>
   import { bearing } from './store.js'
 
-  function handleClick(ev) {
-    window.dispatchEvent(new CustomEvent("bearing-click", {detail: ev}))
-  }
-
   let visible = $derived(
     $bearing.pitch != 0 || $bearing.roll != 0 || $bearing.bearing != 0
   )
@@ -13,6 +9,7 @@
 
   let transform = $derived(`scale(${1 / Math.pow(Math.cos($bearing.pitchInRadians), 0.5)}) rotateZ(${$bearing.roll}deg) rotateX(${$bearing.pitch}deg) rotateZ(${$bearing.bearing}deg)`)
 
+  let attrs = $props()
 </script>
 
 <style>
@@ -63,7 +60,7 @@
 
 </style>
 
-<button on:click={handleClick} class="logo {hidCls}" title="Reset bearing" aria-label="reset bearing">
+<button {...attrs} class="logo {hidCls}" title="Reset bearing" aria-label="reset bearing">
     <svg
         viewBox='0 0 29 29'
         xmlns='http://www.w3.org/2000/svg'

@@ -1,13 +1,15 @@
 <script>
-import { onMount } from 'svelte'
-import { get, derived } from 'svelte/store'
+import { tick, onMount, onDestroy } from 'svelte'
+import { get, derived, writable } from 'svelte/store'
 
 import InfoBox from "./lib/InfoBox.svelte"
 import Toggle from "./lib/Toggle.svelte"
-import Locator from "./lib/Locator.svelte"
+import LocatorButton from "./lib/Locator.svelte"
 import Bearing from "./lib/Bearing.svelte"
 import Map from "./lib/Map.svelte"
 import NetworkInfo from "./lib/NetworkInfo.svelte"
+
+import { Locator } from './lib/locator.js'
 import { selectedStation, loading, locationState } from './lib/store.js'
 import { visible_networks_id, network_filter } from './lib/store.js'
 import { filter_hydrated } from './lib/store.js'
@@ -22,11 +24,13 @@ let networks
 let visible_networks
 let selected_network
 
-function updateFilter({name, tags}) {
-  if ($filter_hydrated) {
-    network_filter.set({name, tags})
-  }
-}
+let map
+
+const locator = new Locator({
+  state: locationState,
+  timeout: Infinity,
+  accuracy: "HIGH",
+})
 
 onMount(async () => {
   networks = await nmanager.networks
@@ -36,7 +40,59 @@ onMount(async () => {
   selected_network = derived(selectedStation, ($store, set) => {
     set($store ? networks.get($store.tag) : null)
   })
+
+  navigator.permissions.query({ name: 'geolocation' }).then(permission => {
+    if (permission.state == "granted") {
+      locator.track()
+    }
+  })
+
+  selectedStation.subscribe(async (station) => {
+    // XXX this should be fixed canvas side regardless of the size of the
+    // infobox!
+    await tick()
+    map.resize()
+  })
 })
+
+onDestroy(() => {
+  locator.kill()
+})
+
+const bearingClick = () => {
+  map.map.resetNorth()
+  map.map.resetNorthPitch()
+}
+
+const locationClick = () => {
+  const state = get(locator.state)
+  switch(state) {
+    case "OFF":
+    case "ERROR":
+      locator.lock()
+      break
+    case "WATCHING":
+      break
+    case "LOCKING":
+    case "TRACKING":
+      locator.lock()
+      if (locator.position) {
+        const zoom = Math.max(map.map.getZoom(), map.default_zoom)
+        const { latitude, longitude } = locator.position.coords
+        map.map.easeTo({center: [longitude, latitude], zoom })
+      }
+      break
+    default:
+      throw new Error(`unexpected locator state ${state}`)
+  }
+}
+
+const infoClick = (station) => {
+  const center = [station.longitude, station.latitude]
+  const zoom = Math.max(map.map.getZoom(), map.default_zoom)
+  map.map.easeTo({ center, zoom })
+  locator.unlock()
+}
 
 </script>
 
@@ -44,7 +100,9 @@ onMount(async () => {
   <header>
     <div class="flex flex-row justify-end">
       <div class="grow">
-        {#if visible_networks} <NetworkInfo networks={visible_networks} on:net-filter-update={(e)=>updateFilter(e.detail)}/> {/if}
+        {#if visible_networks}
+          <NetworkInfo networks={visible_networks} />
+        {/if}
       </div>
       <div>
         <Toggle />
@@ -61,10 +119,10 @@ onMount(async () => {
   </div>
   <div id="bottom">
     <div class="flex flex-col items-end px-4 py-8 space-y-4">
-      <Bearing />
-      <Locator />
+      <Bearing onclick={bearingClick}/>
+      <LocatorButton onclick={locationClick}/>
     </div>
-    <InfoBox station={selectedStation} network={selected_network}/>
+    <InfoBox station={selectedStation} network={selected_network} onclick={infoClick}/>
   </div>
 </div>
-<Map />
+<Map bind:map={map} locator={locator} />

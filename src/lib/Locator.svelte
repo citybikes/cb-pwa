@@ -1,16 +1,24 @@
 <script>
-  import { onDestroy } from 'svelte'
-  import { get } from 'svelte/store'
-  import { Locator } from './locator.js'
-  import { loading, locationState } from './store.js'
+  import { derived } from 'svelte/store'
+  import { locationState } from './store.js'
 
-  function handleClick(ev) {
-    window.dispatchEvent(new CustomEvent("loc-click", {detail: ev}))
-  }
+  let attrs = $props()
 
-  $: loadingClass = $locationState == "WATCHING" ? 'loading' : ''
-  $: lockedClass = $locationState == "LOCKING" ? 'locked' : ''
-  $: errorClass = $locationState == "ERROR" ? 'error' : ''
+  let stateClass = $derived.by(() => {
+    switch($locationState) {
+      case "WATCHING":
+        return 'loading'
+        break
+      case "LOCKING":
+        return 'locked'
+        break
+      case "ERROR":
+        return 'error'
+        break
+      default:
+        return ''
+    }
+  })
 </script>
 
 <style>
@@ -86,7 +94,7 @@
     }
 </style>
 
-<button on:click={handleClick} class="logo loc-toggle {loadingClass} {lockedClass} {errorClass}" title="Find my location" aria-label="find my location">
+<button {...attrs} class="logo loc-toggle {stateClass}" title="Find my location" aria-label="find my location">
     <svg
        viewBox="0 0 24 24"
        version="1.1"

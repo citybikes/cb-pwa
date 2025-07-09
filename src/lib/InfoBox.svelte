@@ -1,29 +1,45 @@
 <script>
-  import { derived } from 'svelte/store'
+  import * as turf from '@turf/turf'
+  import { onMount, onDestroy } from 'svelte'
+  import { writable, derived } from 'svelte/store'
+
   import '../app.css'
 
   export let station
   export let network
 
-  const distanceStr = derived(station, $st => {
-    if (!$st?.distance) return ''
+  export let onclick = (station) => { console.log(station) }
 
-    if ($st.distance < 1) {
-      return `${parseInt($st.distance * 1000)} m`
-    }
+  let position = writable(null)
 
-    if ($st.distance < 10) {
-      return `${$st.distance.toFixed(1)} km`
-    }
+  const onLocUpdate = (ev) => position.set(ev.detail.position)
 
-    return `${parseInt($st.distance)} km`
+  onMount(() => {
+    window.addEventListener('loc-update', onLocUpdate)
   })
 
-  const handleClick = () => {
-    window.dispatchEvent(new CustomEvent("infobox-click", {
-      detail: $station,
-    }))
-  }
+  onDestroy(() => {
+    window.removeEventListener('loc-update', onLocUpdate)
+  })
+
+  const distanceStr = derived([station, position], ([$st, $pos]) => {
+    if (!$pos || !$st) return
+
+    const distance = turf.distance(
+      [$pos.coords.longitude, $pos.coords.latitude],
+      [$st.longitude, $st.latitude]
+    )
+
+    if (distance < 1) {
+      return `${parseInt(distance * 1000)} m`
+    }
+
+    if (distance < 10) {
+      return `${distance.toFixed(1)} km`
+    }
+
+    return `${parseInt(distance)} km`
+  })
 
   const availability = derived(station, $st => {
     if (!$st) return []
@@ -69,7 +85,7 @@ div.bar {
 
 
 {#if $station}
-<div class="infobox px-4 pb-1 pt-2" on:click={handleClick}>
+<div class="infobox px-4 pb-1 pt-2" onclick={() => onclick($station)}>
   <div class="flex items-center justify-between">
     <div class="flex-1" style="overflow: hidden;">
       <div class="font-medium text-xl">

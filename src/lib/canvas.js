@@ -97,17 +97,42 @@ Canvas.prototype.add = function (entity) {
   this.invalidate()
 }
 
-function CoarsePointer(map, latlng, bg, fg, onscreen, offscreen) {
+Canvas.prototype.click = function(ev) {
+  const { x, y } = ev.point
+  const ent = this.hit(x, y)
+
+  if (!ent) return [false]
+
+  return [true, ent.click(ev)]
+}
+
+Canvas.prototype.hit = function(x, y) {
+  for (let i = 0; i < this.entities.length; i++) {
+    if (this.entities[i].hit(x, y)) return this.entities[i]
+  }
+}
+
+function CoarsePointer(map, { ...opts } = {}) {
+  opts = {
+    latlng: undefined,
+    onscreen: false,
+    offscreen: true,
+    bg: [255, 0, 0],
+    fg: [0, 0, 255],
+    onClick: () => {},
+    ...opts
+  }
   const l = 75
 
   this.map = map
-  this.lat = latlng ? latlng[0] : null
-  this.lng = latlng ? latlng[1] : null
-  this.onscreen = onscreen === undefined ? false : onscreen
-  this.offscreen = offscreen === undefined ? true : offscreen
+  this.lat = opts.latlng ? opts.latlng[0] : null
+  this.lng = opts.latlng ? opts.latlng[1] : null
+  this.onscreen = opts.onscreen
+  this.offscreen = opts.offscreen
+  this.onClick = opts.onClick
 
-  this.bg = bg ?? [255, 0, 0]
-  this.fg = fg ?? [0, 0, 255]
+  this.bg = opts.bg
+  this.fg = opts.fg
 
   this.l = l
   this.angle = 0
@@ -181,9 +206,7 @@ CoarsePointer.prototype.draw = function (ctx) {
 }
 
 CoarsePointer.prototype.click = function (ev) {
-  const zoom = Math.max(this.map.getZoom(), 15)
-  const center = [this.lng, this.lat]
-  this.map.easeTo({ center: center, zoom: zoom })
+  return this.onClick(ev, this)
 }
 
 CoarsePointer.prototype.hitbox = function() {
@@ -210,7 +233,14 @@ CoarsePointer.prototype.hit = function (x, y) {
 }
 
 
-function POV(map, latlng, bg, fg) {
+function POV(map, { ...opts } = {}) {
+  opts = {
+    latlng: undefined,
+    bg: [255, 0, 0],
+    fg: [0, 0, 255],
+    ...opts
+  }
+
   this.map = map
 
   // angle relative to canvas, 0 north, clockwise
@@ -218,19 +248,20 @@ function POV(map, latlng, bg, fg) {
   // view cone
   this.aperture = Math.PI * 2 * 0.3
 
-  this.lat = latlng[0]
-  this.lng = latlng[1]
+  this.lat = opts.latlng ? latlng[0] : null
+  this.lng = opts.latlng ? latlng[1] : null
 
   this.pov_size = 25
   this.point_size = 50
 
-  this.bg = bg ?? [255, 0, 0]
-  this.fg = fg ?? [0, 0, 255]
+  this.bg = opts.bg ?? [255, 0, 0]
+  this.fg = opts.fg ?? [0, 0, 255]
 
   this.l = 8
 }
 
 POV.prototype.update = function () {
+  if (!this.lat || !this.lng) return
   const zoom = Math.max(this.map.getZoom(), 1)
   const proj = this.map.project([this.lng, this.lat])
 
