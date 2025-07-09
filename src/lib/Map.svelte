@@ -223,13 +223,13 @@ const layers = {
       "text-font": ["Noto Sans Regular"],
       "text-size": 12,
       "symbol-placement": "point",
-      "text-variable-anchor": ["top"],
-      "text-offset": [0, 1.5],
+      "text-variable-anchor": ["left", "right", "top", "bottom"],
+      "text-offset": [1.25, 1.25],
     },
     paint: {
       "text-color": "#000",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 2,
+      "text-halo-width": 1,
     }
   },
   stations_status_labels: {
