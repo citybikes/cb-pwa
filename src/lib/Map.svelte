@@ -236,7 +236,7 @@ const layers = {
     id: 'stations-status-labels',
     type: 'symbol',
     source: 'stations',
-    minzoom: 15,
+    minzoom: 14,
     layout: {
       "text-field": '{bikes}',
       "text-font": ["Noto Sans Regular"],
