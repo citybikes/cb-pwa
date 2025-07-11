@@ -229,7 +229,7 @@ const layers = {
     paint: {
       "text-color": "#000",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1,
+      "text-halo-width": 2,
     }
   },
   stations_status_labels: {
