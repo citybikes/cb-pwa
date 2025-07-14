@@ -26,14 +26,17 @@
   }
 
   const availability = derived(station, $st => {
-    if (!$st) return [];
+    if (!$st) return []
 
-    const bikes = parseInt($st.extra.normal_bikes ?? $st.free_bikes ?? 0)
     const ebikes = parseInt($st.extra.ebikes ?? 0)
+    const bikes = parseInt($st.extra.normal_bikes ?? $st.free_bikes - ebikes ?? 0)
     const slots = parseInt($st.empty_slots ?? 0)
     const total_slots = $st.free_bikes + slots
 
-    return [bikes/total_slots, ebikes/total_slots, slots / total_slots]
+    return [
+      ... [bikes/total_slots, ebikes/total_slots].sort().reverse(),
+      slots / total_slots
+    ]
   })
 </script>
 
@@ -56,21 +59,8 @@ div.infobox {
 }
 
 div.bar {
-
   div.segment {
     background-color: var(--text-main);
-  }
-
-  div.segment:nth-child(1) {
-    opacity: 80%;
-  }
-
-  div.segment:nth-child(2) {
-    opacity: 60%;
-  }
-
-  div.segment:nth-child(3) {
-    opacity: 20%;
   }
 }
 
@@ -98,9 +88,9 @@ div.bar {
   <div class="status">
 
     <div class="h-2 flex bar mt-1">
-      <div class="segment" style="width: {$availability[0] * 100}%;"></div>
-      <div class="segment" style="width: {$availability[1] * 100}%;"></div>
-      <div class="segment" style="width: {$availability[2] * 100}%;"></div>
+      <div class="segment" style="opacity: 80%; width: {$availability[0] * 100}%;"></div>
+      <div class="segment" style="opacity: 60%; width: {$availability[1] * 100}%;"></div>
+      <div class="segment" style="opacity: 20%; width: {$availability[2] * 100}%;"></div>
     </div>
 
     <div class="font-medium flex text-xl mt-1">
