@@ -20,6 +20,7 @@ nmanager.networks
 
 let networks
 let visible_networks
+let selected_network
 
 function updateFilter({name, tags}) {
   if ($filter_hydrated) {
@@ -31,6 +32,9 @@ onMount(async () => {
   networks = await nmanager.networks
   visible_networks = derived(visible_networks_id, ($store, set) => {
     set(Array.from($store).map((nid) => networks.get(nid)))
+  })
+  selected_network = derived(selectedStation, ($store, set) => {
+    set($store ? networks.get($store.tag) : null)
   })
 })
 
@@ -60,7 +64,7 @@ onMount(async () => {
       <Bearing />
       <Locator />
     </div>
-    <InfoBox station={selectedStation}/>
+    <InfoBox station={selectedStation} network={selected_network}/>
   </div>
 </div>
 <Map />

@@ -446,7 +446,7 @@ const loadVisibleNets = (force = false) => {
 
       const dd = d.network.stations.map((st) => {
         // set station on our own data source
-        stmap[st.id] = st
+        stmap[st.id] = {...st, tag: d.network.id}
 
         // normalize coord precision
         const coords = [st.longitude.toFixed(6), st.latitude.toFixed(6)]

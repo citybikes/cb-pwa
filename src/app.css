@@ -124,27 +124,6 @@ div.attribution a:after {
   font-size: 0.8em;
 }
 
-div.infobox {
-}
-
-div.infobox {
-  background-color: var(--background);
-  color: var(--text-main);
-  text-align: center;
-  border-top: solid 1px var(--text-main);
-  pointer-events: all;
-  cursor: pointer;
-}
-
-div.infobox h1 {
-  font-size: 2em;
-  text-transform: capitalize;
-}
-
-div.infobox span {
-  font-size: 1.5em;
-}
-
 div#bottom {
   position: absolute;
   bottom: 0px;
