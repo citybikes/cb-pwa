@@ -380,6 +380,15 @@ class Map extends HTMLElement {
     return this._loading
   }
 
+  get selected() {
+    return this._selected
+  }
+
+  set selected(val) {
+    this._selected = val
+    this.onStationSelected && this.onStationSelected(val)
+  }
+
   queryVisibleNets() {
     if (this.map.getZoom() < 10) return new Set()
 
@@ -575,8 +584,7 @@ class Map extends HTMLElement {
     this.selected_pointer.bg = colors[element.properties.status]
     this.canvas.invalidate()
 
-    const station = this.networks.getStation(element.properties)
-    return (this.onStationSelected ? this.onStationSelected(station) : undefined)
+    this.selected = this.networks.getStation(element.properties)
   }
 
   deselectEvent(ev) {
@@ -594,8 +602,9 @@ class Map extends HTMLElement {
 
     this.selected_pointer.lat = null
     this.selected_pointer.lng = null
+    this.selected = null
 
-    return (this.onStationSelected ? this.onStationSelected(null) : undefined)
+    this.onStationSelected && this.onStationSelected(null)
   }
 
   onLocUpdate(ev) {
@@ -708,6 +717,11 @@ class Map extends HTMLElement {
     Promise.all(promises).then(() => {
       if (atOnce) this.map.getSource('stations').setData(sources.stations.data)
       this.loading = false
+
+      if (this.selected && nets.has(this.selected.tag)) {
+        // update selected station
+        this.selected = this.networks.getStation(this.selected)
+      }
     })
   }
 
