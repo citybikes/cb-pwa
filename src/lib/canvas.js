@@ -62,17 +62,18 @@ Canvas.prototype.paint = function () {
   // XXX rename to paint for consistency
   this.entities.forEach((e) => e.draw(ctx))
 
-  // ctx.font = "bold 12px 'Inter Variable', ui-sans-serif, system-ui, sans-serif";
-  // ctx.fillStyle = '#555'
-  // ctx.lineWidth = 2
-  // ctx.strokeStyle = '#FFF'
-  // ctx.strokeText("CityBikes", 20, this.h - 20)
-  // ctx.fillText("CityBikes", 20, this.h - 20)
+  ctx.font = "bold 12px 'Inter Variable', ui-sans-serif, system-ui, sans-serif";
+  ctx.fillStyle = '#555'
+  ctx.lineWidth = 2
+  ctx.strokeStyle = '#FFF'
+  ctx.strokeText("CityBikes", 20, this.h - 20)
+  ctx.fillText("CityBikes", 20, this.h - 20)
 
   const t1 = performance.now()
   if (DEBUG_PAINT_MS) {
     ctx.fillStyle = '#000'
-    ctx.fillText(`${(t1 - t0)} ms`, 20, 20)
+    ctx.fillText(`${(t1 - t0)} ms`, 20, this.h - 40)
+    ctx.fillText(`${t1}`, 20, this.h - 60)
   }
 
   this.dirty = false
@@ -80,6 +81,10 @@ Canvas.prototype.paint = function () {
 
 Canvas.prototype.update = function () {
   this.entities.forEach((e) => e.update())
+}
+
+Canvas.prototype.animate = function () {
+  this.entities.forEach((e) => e.animate())
 }
 
 Canvas.prototype.invalidate = function () {
@@ -232,113 +237,149 @@ CoarsePointer.prototype.hit = function (x, y) {
   return (dx * dx + dy * dy) <= (radius * radius)
 }
 
+CoarsePointer.prototype.animate = function () {}
 
-function POV(map, { ...opts } = {}) {
-  opts = {
-    latlng: undefined,
-    bg: [255, 0, 0],
-    fg: [0, 0, 255],
-    ...opts
+
+class POV {
+
+  map
+  aperture = Math.PI * 2 * 0.3
+
+  lat
+  lng
+  x
+  y
+
+  w = 8
+  pov_size = 25
+  bg
+  fg
+
+  constructor(map, { ... opts } = {}) {
+    opts = {
+      latlng: undefined,
+      bg: [255, 0, 0],
+      fg: [0, 0, 255],
+      ...opts
+    }
+
+    this.map = map
+    this.lat = opts.latlng ? opts.latlng[0] : null
+    this.lng = opts.latlng ? opts.latlng[1] : null
+    this.bg = opts.bg ?? [255, 0, 0]
+    this.fg = opts.fg ?? [0, 0, 255]
   }
 
-  this.map = map
+  angleDelta(a, b) {
+    const diff = ((b - a + Math.PI) % (2 * Math.PI)) - Math.PI;
+    return diff < -Math.PI ? diff + 2 * Math.PI : diff;
+  }
 
-  // angle relative to canvas, 0 north, clockwise
-  this.angle = null
-  // view cone
-  this.aperture = Math.PI * 2 * 0.3
+  update() {
+    if (this.lat == undefined || this.lng == undefined) return
 
-  this.lat = opts.latlng ? latlng[0] : null
-  this.lng = opts.latlng ? latlng[1] : null
+    const zoom = Math.max(this.map.getZoom(), 1)
+    const proj = this.map.project([this.lng, this.lat])
 
-  this.pov_size = 25
-  this.point_size = 50
+    this.x = proj.x
+    this.y = proj.y
+    this.pov_size = 10 * zoom * 0.4
 
-  this.bg = opts.bg ?? [255, 0, 0]
-  this.fg = opts.fg ?? [0, 0, 255]
+    const bg = this.bg
+    const fg = this.fg
 
-  this.l = 8
-}
+    this.gradient = this._c.ctx.createRadialGradient(0, 0, 0, 0, 0, this.pov_size)
+    this.gradient.addColorStop(0, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0.8)`)
+    this.gradient.addColorStop(1, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0)`)
 
-POV.prototype.update = function () {
-  if (!this.lat || !this.lng) return
-  const zoom = Math.max(this.map.getZoom(), 1)
-  const proj = this.map.project([this.lng, this.lat])
+    this.fill = `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 1)`
+    this.stroke = `rgba(${fg[0]}, ${fg[1]}, ${fg[2]}, 1)`
+  }
 
-  this.x = proj.x
-  this.y = proj.y
-  this.pov_size = 10 * zoom * 0.4
-}
+  hit(x, y) {
+    // If it's not visible, surely it can't be hit
+    if (! this.visible()) return false
 
-POV.prototype.hit = function (x, y) {
-  // If it's not visible, surely it can't be hit
-  if (! this.visible()) return false
+    const radius = this.w
+    const dx = x - this.x
+    const dy = y - this.y
 
-  const radius = this.l
-  const dx = x - this.x
-  const dy = y - this.y
+    return (dx * dx + dy * dy) <= (radius * radius)
+  }
 
-  return (dx * dx + dy * dy) <= (radius * radius)
-}
+  click() {}
+  resize() {}
 
-POV.prototype.click = function () {}
+  visible() {
+    return this.lat && this.lng &&
+           this.x > - 100 && this.y > - 100 &&
+           this.x < this._c.w + 100 && this.y < this._c.h + 100
+  }
 
-POV.prototype.resize = function () {}
+  draw(ctx) {
 
-POV.prototype.visible = function () {
-  return this.lat && this.lng &&
-         this.x > - 100 && this.y > - 100 &&
-         this.x < this._c.w + 100 && this.y < this._c.h + 100
-}
+    if (!this.visible()) return
 
-POV.prototype.draw = function (ctx) {
+    if (this.angle != null) {
+      // POV Cone
+      ctx.save()
 
-  if (!this.visible()) return
+      ctx.translate(this.x, this.y)
+      ctx.rotate(this.angle - Math.PI / 2 - this.aperture / 2)
 
-  const bg = this.bg
-  const fg = this.fg
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(
+        this.pov_size * Math.cos(0),
+        this.pov_size * Math.sin(0)
+      )
+      ctx.arc(0, 0, this.pov_size, 0, this.aperture)
+      ctx.lineTo(0, 0)
 
-  if (this.angle != null) {
-    // POV Cone
-    ctx.save()
+      ctx.fillStyle = this.gradient
+      ctx.fill()
 
-    ctx.translate(this.x, this.y)
-    ctx.rotate(this.angle - Math.PI / 2 - this.aperture / 2)
+      ctx.restore()
+    }
 
+    // Position marker
     ctx.beginPath()
-    ctx.moveTo(0, 0)
-    ctx.lineTo(
-      this.pov_size * Math.cos(0),
-      this.pov_size * Math.sin(0)
-    )
-    ctx.arc(0, 0, this.pov_size, 0, this.aperture)
-    ctx.lineTo(0, 0)
+    ctx.arc(this.x, this.y, this.w, 0, Math.PI * 2)
 
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.pov_size)
-    gradient.addColorStop(0, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0.8)`)
-    gradient.addColorStop(1, `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 0)`)
-
-    // gradient.addColorStop(0, "rgba(0, 150, 255, 0.8)")
-    // gradient.addColorStop(1, "rgba(0, 150, 255, 0)")
-
-    ctx.fillStyle = gradient
+    ctx.fillStyle = this.fill
+    ctx.strokeStyle = this.stroke
+    ctx.lineWidth = 2
     ctx.fill()
-
-    ctx.restore()
+    ctx.stroke()
   }
 
-  // Position marker
-  ctx.beginPath()
-  ctx.arc(this.x, this.y, this.l, 0, Math.PI * 2)
+  get angle () {
+    return this._angle
+  }
 
-  // ctx.fillStyle = '#007bff'
-  // ctx.strokeStyle = 'white';
-  ctx.fillStyle = `rgba(${bg[0]}, ${bg[1]}, ${bg[2]}, 1)`
-  ctx.strokeStyle = `rgba(${fg[0]}, ${fg[1]}, ${fg[2]}, 1)`
-  ctx.lineWidth = 2;
-  ctx.fill();
-  ctx.stroke();
+  set angle(value) {
+    this._targetAngle = value
+
+    if (this._angle == null) {
+      this._c.invalidate()
+      this._angle = value
+    }
+
+    if (!this.visible())
+      this._angle = value
+  }
+
+  animate () {
+    if (this.angle == null || this.angle == this._targetAngle) return
+
+    const delta = this.angleDelta(this.angle, this._targetAngle)
+    if (Math.abs(delta) < 0.2) {
+       // ignore
+    } else {
+      this._angle += delta * 0.1
+      this._c.invalidate()
+    }
+  }
 }
-
 
 export { Canvas, CoarsePointer, POV }

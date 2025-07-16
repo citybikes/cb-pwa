@@ -339,6 +339,7 @@ class Map extends HTMLElement {
     this.onThemeUpdate = this.onThemeUpdate.bind(this)
     this.onClick = this.onClick.bind(this)
     this.deselectEvent = this.deselectEvent.bind(this)
+    this.deviceOrientation = this.deviceOrientation.bind(this)
   }
 
   resize() {
@@ -537,6 +538,11 @@ class Map extends HTMLElement {
     // XXX use something else than event, store probl.
     document.addEventListener('theme-updated', this.onThemeUpdate)
 
+    // XXX deprecated, but nothing similar exists /shrug
+    // For safari, look into:
+    // https://stackoverflow.com/questions/56514116/how-do-i-get-deviceorientationevent-and-devicemotionevent-to-work-on-safari
+    window.addEventListener('deviceorientationabsolute', this.deviceOrientation)
+
     this.animate()
   }
 
@@ -651,8 +657,9 @@ class Map extends HTMLElement {
   }
 
   animate() {
+    this.canvas.animate()
     if (this.canvas.dirty) this.canvas.paint()
-    requestAnimationFrame(() => this.animate())
+    this.frame = requestAnimationFrame(() => this.animate())
   }
 
   async disconnectedCallback() {
@@ -660,6 +667,7 @@ class Map extends HTMLElement {
     this.map.remove()
     window.removeEventListener('loc-update', this.onLocUpdate)
     document.removeEventListener('theme-update', this.onThemeUpdate)
+    this.frame && cancelAnimationFrame(this.frame)
   }
 
   networkToFeatures(network) {
@@ -733,6 +741,14 @@ class Map extends HTMLElement {
     this.map.setFilter(layers.stations_lite.id, filter)
     this.map.setFilter(layers.hulls_net.id, filter)
     this.map.setFilter(layers.hull_labels.id, filter)
+  }
+
+  deviceOrientation(event) {
+    // deg to rad
+    // convert also to canvas reference
+    // alpha is degrees to north
+    if (! this.pov) return
+    this.pov.angle = 2 * Math.PI - ((event.alpha * Math.PI) / 180.0)
   }
 }
 

@@ -12,7 +12,6 @@ import NetworkInfo from "./lib/NetworkInfo.svelte"
 import { Locator } from './lib/locator.js'
 import { selectedStation, loading, locationState } from './lib/store.js'
 import { visible_networks_id, network_filter } from './lib/store.js'
-import { filter_hydrated } from './lib/store.js'
 import { NetworkManager } from './lib/network_manager.js'
 
 
