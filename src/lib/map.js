@@ -92,7 +92,13 @@ const sources = {
     data: new turf.featureCollection([]),
     generateId: false,
     promoteId: 'id',
-  }
+  },
+  vehicles: {
+    type: 'geojson',
+    data: new turf.featureCollection([]),
+    generateId: false,
+    promoteId: 'id',
+  },
 }
 
 const layers = {
@@ -136,6 +142,40 @@ const layers = {
         11,  1.0 ,
       ]
     }
+  },
+  vehicles: {
+    id: 'vehicles',
+    type: 'circle',
+    source: 'vehicles',
+    minzoom: 5,
+    paint: {
+      'circle-radius': [
+        'let', 'selected',
+          ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.5],
+          [
+            // XXX Maybe tune these
+            'interpolate', ['linear'], ['zoom'],
+            8,    ['*', ['var', 'selected'], 0.5 ],
+            10,   ['*', ['var', 'selected'], 2   ],
+            12,   ['*', ['var', 'selected'], 4   ],
+            15,   ['*', ['var', 'selected'], 8   ],
+            22,   ['*', ['var', 'selected'], 18  ],
+          ]
+      ],
+      'circle-color': '#007bff',
+      'circle-stroke-color': '#111',
+      'circle-stroke-width': [
+        'interpolate', ['linear'], ['zoom'],
+        10.0, 0,
+        10.5,   ['case', ['boolean', ['feature-state', 'selected'], false], 3, 0],
+      ],
+      'circle-opacity': [
+        // XXX Maybe tune these
+        'interpolate', ['linear'], ['zoom'],
+        10,  0.0,
+        11,  1.0 ,
+      ]
+    },
   },
   hulls: {
     id: 'hulls',
@@ -192,6 +232,29 @@ const layers = {
       'fill-opacity': 0,
     }
   },
+  vehicles_labels: {
+    id: 'vehicles-labels',
+    type: 'symbol',
+    source: 'vehicles',
+    minzoom: 16,
+    layout: {
+      // WTF
+      // https://docs.mapbox.com/style-spec/reference/layers/#symbol
+      // https://docs.mapbox.com/style-spec/reference/expressions/#types-format
+      "text-field": '{kind}',
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 12,
+      "symbol-placement": "point",
+      "text-variable-anchor": ["top", "bottom", "left", "right"],
+      "text-offset": [1, 1],
+    },
+    paint: {
+      "text-color": "#000",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 2,
+    }
+  },
+
   stations_labels: {
     id: 'stations-labels',
     type: 'symbol',
@@ -264,7 +327,7 @@ const layers = {
     id: 'stations-lite',
     type: 'circle',
     minzoom: 8,
-    maxzoom: 20,
+    maxzoom: 14,
     source: 'stations-lite',
     'source-layer': 'stations',
     paint: {
@@ -295,17 +358,13 @@ const layers = {
     maxzoom: 8,
     paint: {
       'circle-radius': [
-          'let', 'selected',
-              ['case', ['boolean', ['feature-state', 'selected'], false], 2, 1],
-              [
-                // XXX Maybe tune these
-                'interpolate', ['linear'], ['zoom'],
-                8,    ['*', ['var', 'selected'], 0.5 ],
-                10,   ['*', ['var', 'selected'], 2   ],
-                12,   ['*', ['var', 'selected'], 4   ],
-                15,   ['*', ['var', 'selected'], 8   ],
-                22,   ['*', ['var', 'selected'], 18  ],
-              ]
+         // XXX Maybe tune these
+         'interpolate', ['linear'], ['zoom'],
+          8  ,   0.5  ,
+         10  ,   2    ,
+         12  ,   4    ,
+         15  ,   8    ,
+         22  ,   18   ,
       ],
       'circle-color': 'rgba(100, 100, 100, 1)',
       'circle-stroke-color': '#555',
@@ -395,7 +454,7 @@ class Map extends HTMLElement {
 
     // Query for invisible rendered hull polygons to see what networks are
     // visible, and also stations (XXX add tag info to outliers)
-    const t_layers = [layers.stations_lite.id, layers.hulls_net_inv.id]
+    const t_layers = [layers.hulls_net_inv.id, layers.stations_lite.id]
 
     const nets = new Set(
       this.map.queryRenderedFeatures(this.map.getBounds(), {layers: t_layers})
@@ -427,7 +486,7 @@ class Map extends HTMLElement {
       container: this.map_container,
       style: 'https://tiles.citybik.es/styles/basic-preview/style.json',
       attributionControl: false,
-      maxZoom: 18,
+      maxZoom: 22,
       center: get(center) ?? [2.1734035, 41.3850639],
       zoom: get(zoom) ?? this.default_zoom,
     })
@@ -465,6 +524,7 @@ class Map extends HTMLElement {
       this.map.addSource('stations-lite', sources.stations_lite)
       this.map.addSource('hulls', sources.hulls)
       this.map.addSource('stations', sources.stations)
+      this.map.addSource('vehicles', sources.vehicles)
 
       // Woah, that's a lot of layers :)
       this.map.addLayer(layers.hulls)
@@ -477,6 +537,8 @@ class Map extends HTMLElement {
       this.map.addLayer(layers.stations_labels)
       this.map.addLayer(layers.stations)
       this.map.addLayer(layers.stations_status_labels)
+      this.map.addLayer(layers.vehicles_labels)
+      this.map.addLayer(layers.vehicles)
 
       this.map.on('resize', this.onResize)
       this.map.on('move', this.onMove)
@@ -494,7 +556,7 @@ class Map extends HTMLElement {
       // XXX This might be faster than registering on idle
       this.map.on('data', (ev) => {
         // XXX: move to a proper load event this is a hack
-        if (ev.sourceId == 'stations-lite' && ev.isSourceLoaded) {
+        if (ev.sourceId == 'hulls' && ev.isSourceLoaded) {
           this.visible_nets = this.queryVisibleNets()
         }
       })
@@ -556,7 +618,7 @@ class Map extends HTMLElement {
     ]
 
     return this.map.queryRenderedFeatures(bbox, {
-      layers: [layers.stations.id],
+      layers: [layers.stations.id, layers.vehicles.id],
     })
   }
 
@@ -577,8 +639,10 @@ class Map extends HTMLElement {
     const element = selectedFeatures[0]
 
     this.map.removeFeatureState({source: layers.stations.source})
+    this.map.removeFeatureState({source: layers.vehicles.source})
+
     this.map.setFeatureState({
-      source: layers.stations.source,
+      source: element.source,
       id: element.id,
     }, { selected: true })
 
@@ -587,10 +651,11 @@ class Map extends HTMLElement {
     this.selected_pointer.lat = lat
     this.selected_pointer.lng = lng
     // XXX do something less implicit
-    this.selected_pointer.bg = colors[element.properties.status]
+    this.selected_pointer.bg = element.properties.status ?
+      colors[element.properties.status] : colors.vehicles
     this.canvas.invalidate()
 
-    this.selected = this.networks.getStation(element.properties)
+    this.selected = this.networks.getThing(element.properties)
   }
 
   deselectEvent(ev) {
@@ -605,6 +670,7 @@ class Map extends HTMLElement {
     if (this.queryAroundPoint(x, y).length > 0) return
 
     this.map.removeFeatureState({source: layers.stations.source})
+    this.map.removeFeatureState({source: layers.vehicles.source})
 
     this.selected_pointer.lat = null
     this.selected_pointer.lng = null
@@ -670,7 +736,25 @@ class Map extends HTMLElement {
     this.frame && cancelAnimationFrame(this.frame)
   }
 
-  networkToFeatures(network) {
+  vehiclesToFeatures(network) {
+    if (!network.vehicles) return []
+
+    return network.vehicles.map((vh) => {
+      // normalize coord precision
+      const coords = [vh.longitude.toFixed(6), vh.latitude.toFixed(6)]
+
+      // generate smallest feature to decr. mapbox memory usage
+      const _vh = {
+        id: vh.id,
+        kind: vh.kind,
+        nname: network.name,
+        tag: network.id,
+      }
+      return turf.point(coords, _vh)
+    })
+  }
+
+  stationsToFeatures(network) {
     return network.stations.map((st) => {
       // normalize coord precision
       const coords = [st.longitude.toFixed(6), st.latitude.toFixed(6)]
@@ -681,6 +765,7 @@ class Map extends HTMLElement {
         name: st.name,
         nname: network.name,
         tag: network.id,
+        kind: 'station',
         bikes: st.free_bikes,
         // precalculate color based on status (easy filter)
         // If we need to update data, then this should not be
@@ -716,19 +801,37 @@ class Map extends HTMLElement {
 
       // XXX look into updateData
       promises.push(this.networks.getNetwork(n).then(net => {
-        const features = this.networkToFeatures(net.network)
-        sources.stations.data.features = [...sources.stations.data.features, ...features]
-        if (! atOnce) this.map.getSource('stations').setData(sources.stations.data)
+        const s_features = this.stationsToFeatures(net.network)
+        const v_features = this.vehiclesToFeatures(net.network)
+
+        // XXX move this out of the n+1 loop
+        sources.vehicles.data.features = sources.vehicles.data.features.filter(
+          (v) => v.properties.tag != n
+        )
+        sources.stations.data.features = sources.stations.data.features.filter(
+          (v) => v.properties.tag != n
+        )
+
+        sources.stations.data.features = [...sources.stations.data.features, ...s_features]
+        sources.vehicles.data.features = [...sources.vehicles.data.features, ...v_features]
+        if (! atOnce) {
+          this.map.getSource('stations').setData(sources.stations.data)
+          this.map.getSource('vehicles').setData(sources.vehicles.data)
+        }
       }))
     })
 
     Promise.all(promises).then(() => {
-      if (atOnce) this.map.getSource('stations').setData(sources.stations.data)
+      if (atOnce) {
+        this.map.getSource('stations').setData(sources.stations.data)
+        this.map.getSource('vehicles').setData(sources.vehicles.data)
+      }
+
       this.loading = false
 
       if (this.selected && nets.has(this.selected.tag)) {
         // update selected station
-        this.selected = this.networks.getStation(this.selected)
+        this.selected = this.networks.getThing(this.selected)
       }
     })
   }
@@ -739,6 +842,8 @@ class Map extends HTMLElement {
     this.map.setFilter(layers.stations_labels.id, filter)
     this.map.setFilter(layers.stations_status_labels.id, filter)
     this.map.setFilter(layers.stations_lite.id, filter)
+    this.map.setFilter(layers.vehicles.id, filter)
+    this.map.setFilter(layers.vehicles_labels.id, filter)
     this.map.setFilter(layers.hulls_net.id, filter)
     this.map.setFilter(layers.hull_labels.id, filter)
   }

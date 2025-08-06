@@ -22,6 +22,8 @@
     window.removeEventListener('loc-update', onLocUpdate)
   })
 
+  const kind = derived(station, $thing => $thing && $thing.kind)
+
   const distanceStr = derived([station, position], ([$st, $pos]) => {
     if (!$pos || !$st) return
 
@@ -77,6 +79,7 @@ div.infobox {
 div.bar {
   div.segment {
     background-color: var(--text-main);
+    color: var(--background);
   }
 }
 
@@ -84,7 +87,7 @@ div.bar {
 
 
 
-{#if $station}
+{#if $kind && $kind == 'station'}
 <div class="infobox px-4 pb-1 pt-2" onclick={() => onclick($station)}>
   <div class="flex items-center justify-between">
     <div class="flex-1" style="overflow: hidden;">
@@ -116,6 +119,34 @@ div.bar {
       <div style="text-align: right; flex-grow: 1">{$station.empty_slots} slots</div>
     </div>
 
+  </div>
+</div>
+{/if}
+
+{#if $kind && $kind != 'station'}
+<div class="infobox px-4 pb-1 pt-2" onclick={() => onclick($station)}>
+  <div class="flex items-center justify-between">
+    <div class="flex-1" style="overflow: hidden;">
+      <div class="font-medium text-xl">
+        {$network.name}
+      </div>
+      <div class="text-sm" style="text-wrap: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        {$station.kind} {$station.extra.uid}
+      </div>
+    </div>
+    <div class="text-lg whitespace-nowrap">
+      {$distanceStr}
+    </div>
+
+   </div>
+
+  <div class="status mt-1 font-normal text-sm">
+    {#if $station.extra.battery !== undefined}
+      <div class="bar mb-1" style="position: relative; border: solid 1px var(--text-main);">
+        <div class="segment" style="padding-left: clamp(0px, {parseInt($station.extra.battery * 100)}%, 2px); width: {parseInt($station.extra.battery * 100)}%; text-overflow: clip; white-space: nowrap; overflow: hidden; z-index: 2; position: relative"> 🔋 {parseInt($station.extra.battery * 100)} %</div>
+        <div style="padding-left: 2px; color: var(--text-main); position: absolute; left: 0px; top: 0px; z-index: 1;"> 🔋 {parseInt($station.extra.battery * 100)} %</div>
+      </div>
+    {/if}
   </div>
 </div>
 {/if}

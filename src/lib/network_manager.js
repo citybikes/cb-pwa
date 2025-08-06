@@ -5,6 +5,7 @@ class NetworkManager {
   static network_list = null
   static networks = new Map()
   static stations = new Map()
+  static vehicles = new Map()
   static timer = null
   static INVALIDATE_INTERVAL = 10 * 1000
   static CACHE_FOR = 60 * 1000
@@ -38,7 +39,7 @@ class NetworkManager {
 
   getNetwork(id) {
     if (! NetworkManager.networks.has(id)) {
-      const promise = fetch(`${this.endpoint}/${id}`)
+      const promise = fetch(`${this.endpoint}/${id}?fields=id,name,stations,vehicles`)
         .then(r=>{
           if (!r.ok) throw new Error(r.status + " Failed Fetch ")
           return r.json()
@@ -47,7 +48,11 @@ class NetworkManager {
         .then(d => {
           d.network.stations.forEach((st) => {
             const uid = `${d.network.id}-${st.id}`
-            NetworkManager.stations.set(uid, { ...st, tag: d.network.id})
+            NetworkManager.stations.set(uid, { ...st, tag: d.network.id, kind: 'station'})
+          })
+          d.network.vehicles && d.network.vehicles.forEach((vh) => {
+            const uid = `${d.network.id}-${vh.id}`
+            NetworkManager.vehicles.set(uid, { ...vh, tag: d.network.id})
           })
           return d
         })
@@ -59,6 +64,14 @@ class NetworkManager {
     }
 
     return NetworkManager.networks.get(id).p
+  }
+
+  getThing( thing ) {
+    if (thing.kind == 'station') {
+      return this.getStation(thing)
+    } else {
+      return this.getVehicle(thing)
+    }
   }
 
   // Receives a pseudo-station
@@ -76,6 +89,23 @@ class NetworkManager {
 
     return undefined
   }
+
+  // Receives a pseudo-station
+  getVehicle({ id, tag, ... st } = {}) {
+    if (id && tag) {
+      return NetworkManager.vehicles.get(`${tag}-${id}`)
+    }
+
+    // "expensive" query, return first match
+    if (id) {
+      for (const st of NetworkManager.vehicles.values()) {
+        if (id == st.id) return st
+      }
+    }
+
+    return undefined
+  }
+
 
   loaded(id) {
     return NetworkManager.networks.has(id)
@@ -97,15 +127,27 @@ class NetworkManager {
 
   invalidateTimer() {
     const invalid = []
+
     NetworkManager.networks.forEach((value, key) => {
       if (performance.now() <= value.ts + NetworkManager.CACHE_FOR)
         return
 
       NetworkManager.networks.delete(key)
       invalid.push(key)
-
-      // XXX Invalidate station cache
     })
+
+    // Invalidate old stations and vehicles.
+    // XXX If this turns out to be a cpu hog use a map of maps
+    NetworkManager.stations.forEach((v, k, m) => {
+      const p = k.match(/^([^-]+)/)[0]
+      invalid.includes(p) && m.delete(k)
+    })
+
+    NetworkManager.vehicles.forEach((v, k, m) => {
+      const p = k.match(/^([^-]+)/)[0]
+      invalid.includes(p) && m.delete(k)
+    })
+
     return invalid
   }
 

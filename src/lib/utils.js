@@ -20,6 +20,7 @@ const colors = {
   green: getStdColor("#009933"),
   getFgColor: () => getStdColor(window.getComputedStyle(document.body).getPropertyValue('--text-main')),
   getBgColor: () => getStdColor(window.getComputedStyle(document.body).getPropertyValue('--background')),
+  vehicles: getStdColor('#007bff'),
 }
 
 export { getStdColor, colors }
